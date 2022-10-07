@@ -1,0 +1,101 @@
+version: "3.9"
+
+networks:
+    rede_byd:
+        external: true
+
+services:
+  streamlit_app:
+    build: ./streamlit/.
+    container_name: streamlit_app
+    image: streamlit_app
+    volumes:
+      - /home/unicamp/web_app/data:/app/data
+    networks:
+      - rede_byd
+    ports:
+      - "8501:8501"
+
+  streamlit_config:
+    build: ./config/.
+    container_name: streamlit_config
+    image: streamlit_config
+    volumes:
+      - /home/unicamp/web_app/data:/app/data
+    networks:
+      - rede_byd
+    ports:
+      - "8502:8502"
+
+  segment_cell:
+    build: ./models/segment_cell/.
+    container_name: segment_cell
+    image: segment_cell
+    networks:
+      - rede_byd
+    ports:
+      - "3000:3000"
+
+  detection_model:
+    build: ./models/detection_model/.
+    privileged: true
+    container_name: detection_model
+    image: detection_model
+    networks:
+      - rede_byd
+    ports:
+      - "6000:6000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  segmentation_model:
+    build: ./models/segmentation_model/.
+    privileged: true
+    container_name: segmentation_model
+    image: segmentation_model
+    networks:
+      - rede_byd
+    ports:
+      - "4000:4000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  vit_model:
+    build: ./models/vit_model/.
+    privileged: true
+    container_name: vit_model
+    image: vit_model
+    networks:
+      - rede_byd
+    ports:
+      - "7000:7000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  mysql:
+    image: mysql/mysql-server:latest
+    container_name: mysql
+    volumes:
+      - /home/mysql:/var/lib/mysql
+    networks: 
+      - rede_byd
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=MYSQLDB

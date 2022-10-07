@@ -1,0 +1,51 @@
+- criação do container com o DB MySQL:
+	- MYSQL_ROOT_PASSWORD=password
+	- MYSQL_DATABASE=MYSQLTEST
+	- ports: "3306:3306"
+
+- criação do DB e Tabelas dentro do container:
+	- [old] docker exec -it mysql -uroot -p % senha igual à utilizada na criação do container
+	- docker exec -it mysql /bin/bash
+	- dentro do container: mysql -uroot -p % senhal igual à criação do container
+	- comandos úteis de SQL:
+		- CREATE DATABASE db;
+		- CREATE TABLE painel (userId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, firstName VARCHAR(20), lastName VARCHAR(20));
+			% exemplo: db "MYSQLTEST", tabela "paineis"
+		- CREATE USER 'newuser'@'%' IDENTIFIED BY 'newpassword';
+			% exemplo: CREATE USER 'usuario'@'%' IDENTIFIED BY 'senha_usuario'
+		- GRANT ALL PRIVILEGES ON db.* to 'newuser'@'%'; % privilegio de admin para o usuario
+		- comentario: Instead of specifying an ip address, notice the '%'. This is to allow remote connection from anywhere via user newuser.
+		- SHOW ALL DATABASE;
+		- USE database_name;
+		- SHOW TABLES;
+
+- criação do DB:
+CREATE DATABASE db;
+USE db;
+
+- criação do usuário:
+CREATE USER 'usuario'@'%' IDENTIFIED BY 'senha_usuario';
+GRANT ALL PRIVILEGES ON db.* to 'usuario'@'%';
+
+- criação da tabela "paineis":
+CREATE TABLE paineis(
+    id_painel INT NOT NULL AUTO_INCREMENT,
+    painel VARCHAR(50) NOT NULL,
+    status INT,
+    img LONGBLOB,
+    num_celulas_ng INT,
+    data_hora DATETIME,
+    comentarios VARCHAR(255),
+    PRIMARY KEY (id_painel)
+    );
+    
+- criação da tabela "celulas":
+CREATE TABLE celulas (
+    id_painel INT NOT NULL,
+    local VARCHAR(50) NOT NULL,
+    painel VARCHAR(50) NOT NULL,
+    trinca INT,
+    solda_fria INT,
+    outros INT,
+    CONSTRAINT FK_id_painel FOREIGN KEY (id_painel) REFERENCES paineis(id_painel)
+);

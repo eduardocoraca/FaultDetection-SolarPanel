@@ -1,0 +1,5 @@
+numpy==1.19.5
+flask==2.0.3
+opencv-python==4.5.3.56
+waitress==2.1.1
+ujson==5.3.0
