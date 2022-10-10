@@ -6,6 +6,7 @@ COPY requirements.txt .
 COPY st_lib.py .
 COPY streamlit_app.py .
 COPY .streamlit /app/.streamlit
+COPY last_file.py .
 
 RUN apt-get update
 RUN apt-get install nano
@@ -16,5 +17,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 8501
 
-ENTRYPOINT [ "streamlit", "run"]
-CMD ["streamlit_app.py"]
+ENTRYPOINT ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.runOnSave=true"]

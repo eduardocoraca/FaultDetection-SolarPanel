@@ -15,13 +15,84 @@ from datetime import datetime
 import base64
 from typing import Tuple, Dict, List
 import yaml
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+import last_file
+
+# for automatic mode
+class Watchdog(FileSystemEventHandler):
+    def __init__(self, hook):
+        self.hook = hook
+
+    def on_modified(self, event):
+        if (event.is_directory==False) & (event.src_path.endswith('.jpg')):
+            self.hook(event.src_path)
+
+def update_last_file(img_path):
+    time.sleep(0.5)
+    last_file_path = last_file.__file__
+    with open(last_file_path, "w") as fp:
+        fp.write(f'path = "{img_path}"')
 
 # initialization
+@st.experimental_memo(show_spinner=False)
+def install_monitor():
+    observer = Observer()
+    observer.schedule(
+        Watchdog(update_last_file),
+        path="images_folder/",
+        recursive=True)
+    observer.start()
+
+def reset():
+    last_file_path = last_file.__file__
+    with open(last_file_path, "w") as fp:
+        fp.write(f'path = ""')  
+
+@st.experimental_memo(show_spinner=False)
+def set_layout_config():
+    st.set_page_config(layout="wide")
+    st.markdown("""
+            <style>
+                .css-18e3th9 {
+                    padding: 2rem 5rem 0rem;
+                }
+                body{
+                    font-size:0.75rem;
+                }
+                .css-hxt7ib{
+                    padding-top: 2rem;
+                }
+            </style>
+            """, 
+            unsafe_allow_html=True)
+
+    # hiding row index
+    hide_table_row_index = """
+                <style>
+                thead tr th:first-child {display:none}
+                tbody th {display:none}
+                </style>
+                """
+    st.markdown(hide_table_row_index, unsafe_allow_html=True)
+
+    st.markdown(
+        """<style>
+            .table {text-align: left !important}
+        </style>
+        """, unsafe_allow_html=True) 
+
+@st.experimental_memo(show_spinner=False)
 def initialize():
+    st.session_state['img_path'] = ''
+
+def update_criteria():
+    '''Updates the criteria according to the config.ym. file
+    '''
     with open('data/config.yml', 'r') as c:
         config = yaml.safe_load(c)
-    st.session_state["criterio_tr"] = config['criterios']['trinca']
-    st.session_state["criterio_sf"] = config['criterios']['solda_fria']
+    st.session_state['criterio_tr'] = config['criterios']['trinca']
+    st.session_state['criterio_sf'] = config['criterios']['solda_fria']
 
 # password
 def logout():
@@ -395,50 +466,17 @@ def get_image(uploaded_file) -> Tuple[np.array, str]:
     return image, filename
 
 @st.experimental_memo(show_spinner=False)
-def image_1(img_painel,df=None):
-    # funcao para formar a primeira imagem do painel (pre-predicoes)
-
-    borda = 100 # borda a ser adicionada na esquerda e em cima
-    img_gerada = 255*np.ones((img_painel.shape[0]+borda, img_painel.shape[1]+borda, 3), dtype=np.uint8)
-    img_gerada[borda:,:,:][:,borda:,:] = img_painel
-
-    wx = img_gerada.shape[1] - borda
-    wy = img_gerada.shape[0] - borda
-
-    for i in range(24):
-        texto = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"][i]
-        pos_y = borda//2
-        pos_x =  borda + (wx//24//2 - 10) + i*(wx//24)
-        img_gerada = cv2.putText(img=img_gerada, text=texto, org=(pos_x,pos_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0,0,0), thickness=4)
-
-    for j in range(6):
-        texto = ["A","B","C","D","E","F"][j]
-        pos_y = j*(wy//6) + (wy//6//2) + borda
-        pos_x = borda//4
-        img_gerada = cv2.putText(img=img_gerada, text=texto, org=(pos_x,pos_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0,0,0), thickness=4)
-
-    char2num = {"A":1, "B":2, "C":3, "D":4, "E":5, "F":6}
-    content = []
-    if df is not None:
-        locais = np.unique(df["Celula"])
-        for l in locais:
-            ex = int(l[0:-1])
-            ey = char2num[l[-1]]
-
-            xx0 = borda + (wx//24)*(ex-1)
-            yy0 = borda + (wy//6)*(ey-1)
-            xx1 = borda + (wx//24)*(ex)
-            yy1 = borda + (wy//6)*(ey)
-
-            img_gerada = cv2.rectangle(img_gerada, (xx0,yy0), (xx1,yy1), (255,0,0), 10)
-
-
-    fig_painel = plt.figure()
-    ax = fig_painel.add_subplot()
-    ax.imshow(img_gerada, cmap="gray")
-    ax.axis("off")
-
-    return fig_painel
+def get_image_auto(image_path:str) -> Tuple[np.array, str]:
+    '''Opens the image from the image path.
+    Args:
+        image_path: path to the image in 'image_folders'
+    Returns:
+        image: np.array with 3 channels
+        filename: str
+    '''
+    filename = image_path.split('/')[-1]
+    image = cv2.imread(image_path)
+    return image, filename
 
 def save_to_db(img_panel: np.array,
                filename: str,

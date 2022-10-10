@@ -9,36 +9,58 @@ from st_click_detector import click_detector
 import mysql.connector
 import base64
 import pandas as pd
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
-import last_file
+
+st.set_page_config(layout="wide")
+#st.header("Detecção de falhas em painéis fotovoltaicos")
+
+# markdown
+st.markdown("""
+        <style>
+            .css-18e3th9 {
+                padding: 2rem 5rem 0rem;
+            }
+            body{
+                font-size:0.75rem;
+            }
+            .css-hxt7ib{
+                padding-top: 2rem;
+            }
+        </style>
+        """, 
+        unsafe_allow_html=True)
+
+# hiding row index
+hide_table_row_index = """
+            <style>
+            thead tr th:first-child {display:none}
+            tbody th {display:none}
+            </style>
+            """
+st.markdown(hide_table_row_index, unsafe_allow_html=True)
+
+st.markdown(
+    """<style>
+        .table {text-align: left !important}
+    </style>
+    """, unsafe_allow_html=True) 
 
 # initialization
-set_layout_config() # sets layout markdown (oly 1st run)
-initialize()  # sets 'manual' mode (only 1st run)
-install_monitor() # starts monitoring (only 1st run)
-update_criteria() # updates criteria from .yml file
+
+initialize()
 
 resultado = ""
+avaliacao = ""
 st.sidebar.subheader("Envio de imagem")
-
-st.session_state['mode'] = st.sidebar.radio('Modo de operação', ('Manual','Automático'), index=0, on_change=reset)
-
-st.subheader("Detecção de falhas em painéis fotovoltaicos")
 uploaded_file = st.sidebar.file_uploader(
     "Enviar imagem.")
+st.subheader("Detecção de falhas em painéis fotovoltaicos")
 
-image_path = last_file.path
-
-
-if (uploaded_file is None) & (len(image_path)==0):
+if uploaded_file is None:
     pass
 else:
+
     ## Image upload
-    if st.session_state['mode'] == 'Manual':
-        image, filename = get_image(uploaded_file)
-    elif st.session_state['mode'] == 'Automático':
-        image, filename = get_image_auto(image_path)
+    image, filename = get_image(uploaded_file)
 
     st.sidebar.subheader("Painel selecionado")
     st.sidebar.text(f"Painel: {filename.split('.')[0]}")
