@@ -25,27 +25,27 @@ st.sidebar.subheader("Envio de imagem")
 st.session_state['mode'] = st.sidebar.radio('Modo de operação', ('Manual','Automático'), index=0, on_change=reset)
 
 st.subheader("Detecção de falhas em painéis fotovoltaicos")
-uploaded_file = st.sidebar.file_uploader(
-    "Enviar imagem.")
+
+
 
 image_path = last_file.path
 
+## Image upload
+if st.session_state['mode'] == 'Manual':
+    st.session_state['uploaded_file'] = st.sidebar.file_uploader("Enviar imagem.")
+    if st.session_state['uploaded_file'] is not None:
+        image, filename = get_image(st.session_state['uploaded_file'])
+elif st.session_state['mode'] == 'Automático':
+    image, filename = get_image_auto(image_path)
 
-if (uploaded_file is None) & (len(image_path)==0):
+
+if (st.session_state['uploaded_file'] is None) & (len(image_path)==0):
     pass
 else:
-    ## Image upload
-    if st.session_state['mode'] == 'Manual':
-        image, filename = get_image(uploaded_file)
-    elif st.session_state['mode'] == 'Automático':
-        image, filename = get_image_auto(image_path)
-
     st.sidebar.subheader("Painel selecionado")
     st.sidebar.text(f"Painel: {filename.split('.')[0]}")
 
     ## Criteria
-    #criterio_sf = st.sidebar.slider('Critério de solda fria (>X%):', min_value=0.0, max_value=5.0, step=0.1)
-    #criterio_tr = st.sidebar.slider('Critério de trinca (>X%):', min_value=0.0, max_value=5.0, step=0.1)
     criterio_sf = st.session_state["criterio_sf"]
     criterio_tr = st.session_state["criterio_tr"]
 
