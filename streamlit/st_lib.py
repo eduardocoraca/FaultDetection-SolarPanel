@@ -46,6 +46,7 @@ def install_monitor():
 
 def reset():
     last_file_path = last_file.__file__
+    st.session_state['uploaded_file'] = None
     with open(last_file_path, "w") as fp:
         fp.write(f'path = ""')  
 
