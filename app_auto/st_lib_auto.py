@@ -46,7 +46,6 @@ def install_monitor():
 
 def reset():
     last_file_path = last_file.__file__
-    st.session_state['uploaded_file'] = None
     with open(last_file_path, "w") as fp:
         fp.write(f'path = ""')  
 
@@ -85,48 +84,16 @@ def set_layout_config():
 
 @st.experimental_memo(show_spinner=False)
 def initialize():
-    st.session_state['img_path'] = ''
-    st.session_state['uploaded_file'] = None
+    reset()
 
 def update_criteria():
-    '''Updates the criteria according to the config.ym. file
+    '''Updates the criteria according to the config.yml file
     '''
     with open('data/config.yml', 'r') as c:
         config = yaml.safe_load(c)
     st.session_state['criterio_tr'] = config['criterios']['trinca']
     st.session_state['criterio_sf'] = config['criterios']['solda_fria']
-
-# password
-def logout():
-    st.session_state["password"] = ""
-    st.session_state["password_correct"] = False
-
-def check_password():
-    """Returns `True` if the user had the correct password."""
-
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store password
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        # First run, show input for password.
-        st.text_input(
-            "Password", type="password", on_change=password_entered, key="password"
-        )
-        return False
-    elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error.
-        st.text_input(
-            "Password", type="password", on_change=password_entered, key="password"
-        )
-        return False
-    else:
-        # Password correct.
-        return True
+    st.session_state['criterio_ot'] = config['criterios']['outros']
 
 # function to convert np.array to binary
 def numpy_to_binary(arr):
@@ -135,7 +102,7 @@ def numpy_to_binary(arr):
     return io_buf.read()
 
 # models
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def request_cell_split(img: np.array) -> dict:
     ''' Sends panel image to 'segment_cell' model
     Args:
@@ -182,7 +149,7 @@ def request_cell_split(img: np.array) -> dict:
 
     return cells, img_painel, df_meta
 
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
     ''' Create an interactive array of cells in html format.
     Args:
@@ -235,7 +202,7 @@ def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
         content += "<br>"
     return content
 
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def request_pred_detection(cells: dict) -> Tuple[pd.DataFrame, dict]:
     '''Sends cells for 'detection_model'.
     Args:
@@ -304,7 +271,7 @@ def request_pred_detection(cells: dict) -> Tuple[pd.DataFrame, dict]:
 
     return df, cells_fault, df_meta
 
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def request_pred_segmentation(cells: dict) -> Tuple[pd.DataFrame, dict]:
     '''Sends cells for 'segmentation_model'.
     Args:
@@ -376,7 +343,7 @@ def request_pred_segmentation(cells: dict) -> Tuple[pd.DataFrame, dict]:
     df_meta['t_total'] = [end-start]
     return df, cells_fault, df_meta
 
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def request_pred_vit(cells: dict) -> Tuple[pd.DataFrame, dict]:
     '''Sends cells for 'vit_model'.
     Args:
@@ -454,21 +421,7 @@ def request_pred_vit(cells: dict) -> Tuple[pd.DataFrame, dict]:
     df_meta['t_total'] = [end-start]
     return df, cells_fault, df_meta
 
-@st.experimental_memo(show_spinner=False)
-def get_image(uploaded_file) -> Tuple[np.array, str]:
-    '''Opens the image sent via Streamlit.
-    Args:
-        uploaded_file: BytesIO.UploadedFile file sent via Streamlit
-    Returns:
-        image: np.array with 3 channels
-        filename: str
-    '''
-    filename = uploaded_file.name
-    image = Image.open(uploaded_file)
-    image = np.array(image)
-    return image, filename
-
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def get_image_auto(image_path:str) -> Tuple[np.array, str]:
     '''Opens the image from the image path.
     Args:
@@ -482,11 +435,12 @@ def get_image_auto(image_path:str) -> Tuple[np.array, str]:
     return image, filename
 
 # logging
-@st.experimental_memo(show_spinner=False)
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def log_results(path: str,
                filename: str,
                result: str,
                predictions: pd.DataFrame,
+               num_ng_cells: int,
                crit_sf: float,
                crit_tr: float,
                pred_detection: pd.DataFrame,
@@ -502,6 +456,7 @@ def log_results(path: str,
         filename: panel identifier
         results: overall panel result ('NG' or 'OK')
         predictions: dataframe with predictions per cell
+        num_ng_cells: number of NG cells
         crit_sf: SF criteria
         crit_tr: TR criteria
         pred_detection: results from detection model
@@ -514,7 +469,7 @@ def log_results(path: str,
     path = log_config['path']
 
     ### panels CSV
-    num_celulas_ng = len(predictions.index)
+    num_celulas_ng = num_ng_cells
     if result == "Painel NG":
         status = 1
     else:
@@ -531,7 +486,7 @@ def log_results(path: str,
         for k in np.unique(predictions["Celula"]):
             local = k
             painel = filename
-            status_k = np.unique(predictions.loc[predictions["Celula"]==k, "Status"].item().split(',')) # falhas presentes na celula
+            status_k = np.unique(predictions.loc[predictions["Celula"]==k, "Status"].item().split(','))
             trinca = 0
             solda_fria = 0
             outros = 0
@@ -576,10 +531,12 @@ def log_results(path: str,
         with open(f'{path}cells_vit_{date}.csv', 'a') as f:
             f.write(f'{local},{painel},{status_k},{tamanho_k},{tempo_k}\n') 
 
+@st.experimental_memo(show_spinner=False, max_entries=1)
 def save_to_db(img_panel: np.array,
                filename: str,
                result: str,
                predictions: pd.DataFrame,
+               num_ng_cells: int, 
                comments: str,
                crit_sf: float,
                crit_tr: float,
@@ -596,6 +553,7 @@ def save_to_db(img_panel: np.array,
         filename: panel identifier
         results: overall panel result ('NG' or 'OK')
         predictions: dataframe with predictions per cell
+        num_ng_cells: number of NG cells
         comments: comments sent by the user
         crit_sf: SF criteria
         crit_tr: TR criteria
@@ -611,7 +569,7 @@ def save_to_db(img_panel: np.array,
     ### panels table
     img_binary = numpy_to_binary(img_panel)
 
-    num_celulas_ng = len(predictions.index)
+    num_celulas_ng = num_ng_cells
     if result == "Painel NG":
         status = 1
     else:
@@ -712,3 +670,5 @@ def save_to_db(img_panel: np.array,
     connection.commit()
     cursor.close()
     connection.close()
+
+# 

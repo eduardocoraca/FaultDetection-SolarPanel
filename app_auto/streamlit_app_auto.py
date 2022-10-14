@@ -1,5 +1,4 @@
 import streamlit as st
-from PIL import Image
 import cv2
 import time
 import numpy as np
@@ -9,70 +8,39 @@ from st_click_detector import click_detector
 import mysql.connector
 import base64
 import pandas as pd
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+import last_file
 
-st.set_page_config(layout="wide")
-#st.header("Detecção de falhas em painéis fotovoltaicos")
-
-# markdown
-st.markdown("""
-        <style>
-            .css-18e3th9 {
-                padding: 2rem 5rem 0rem;
-            }
-            body{
-                font-size:0.75rem;
-            }
-            .css-hxt7ib{
-                padding-top: 2rem;
-            }
-        </style>
-        """, 
-        unsafe_allow_html=True)
-
-# hiding row index
-hide_table_row_index = """
-            <style>
-            thead tr th:first-child {display:none}
-            tbody th {display:none}
-            </style>
-            """
-st.markdown(hide_table_row_index, unsafe_allow_html=True)
-
-st.markdown(
-    """<style>
-        .table {text-align: left !important}
-    </style>
-    """, unsafe_allow_html=True) 
-
-# initialization
-
-initialize()
+### initialization
+set_layout_config() # sets layout markdown (oly 1st run)
+initialize()  # sets 'manual' mode (only 1st run)
+install_monitor() # starts monitoring (only 1st run)
+update_criteria() # updates criteria from .yml file
 
 resultado = ""
-avaliacao = ""
 st.sidebar.subheader("Envio de imagem")
-uploaded_file = st.sidebar.file_uploader(
-    "Enviar imagem.")
+st.sidebar.write('Modo de operação: Automático')
 st.subheader("Detecção de falhas em painéis fotovoltaicos")
 
-if uploaded_file is None:
+image_path = last_file.path # path to the most recent image
+
+### Main
+if len(image_path)==0:
     pass
 else:
-
-    ## Image upload
-    image, filename = get_image(uploaded_file)
-
+    image, filename = get_image_auto(image_path)
     st.sidebar.subheader("Painel selecionado")
     st.sidebar.text(f"Painel: {filename.split('.')[0]}")
 
     ## Criteria
-    #criterio_sf = st.sidebar.slider('Critério de solda fria (>X%):', min_value=0.0, max_value=5.0, step=0.1)
-    #criterio_tr = st.sidebar.slider('Critério de trinca (>X%):', min_value=0.0, max_value=5.0, step=0.1)
     criterio_sf = st.session_state["criterio_sf"]
     criterio_tr = st.session_state["criterio_tr"]
+    criterio_ot = st.session_state["criterio_ot"]
 
     st.sidebar.text(f"Critério TR: >{criterio_tr}%")
     st.sidebar.text(f"Critério SF: >{criterio_sf}%")
+    st.sidebar.text(f"Critério OT: >{criterio_ot}%")
 
     ## Request: cell segmentation
     cells, img_painel, meta_split = request_cell_split(image) # cells: dict with the local as key and a 150x300 matrix
@@ -102,36 +70,36 @@ else:
         resultado = "Painel OK"
 
 
-    # cell report dataframe
+    ## cell report dataframe
     results_dict = {
         'Celula': [],
         'Status': []
     }
-    # for each cell: check if sum of lengths of each flaw is larger than the threshold
+    # for each cell: check if sum of lengths of each flaw is 
+    # larger than the threshold
+    num_ng_cells = 0 # counter: number of NG cells
     for c in list(np.unique(pred_sem_vit['Celula'])):
         #f = pred_sem_vit.loc[((pred_sem_vit['Celula']==c) & (pred_sem_vit['Tamanho']>criterio_tr) & (pred_sem_vit['Status']=='Trinca')) | ((pred_sem_vit['Celula']==c) & (pred_sem_vit['Tamanho']>criterio_sf) & (pred_sem_vit['Status']=='Solda fria')), 'Status']
         f_tr = pred_sem_vit.loc[((pred_sem_vit['Celula']==c) & (pred_sem_vit['Status']=='Trinca'))]
         f_sf = pred_sem_vit.loc[((pred_sem_vit['Celula']==c) & (pred_sem_vit['Status']=='Solda fria'))]
+        f_ot = pred_sem_vit.loc[((pred_sem_vit['Celula']==c) & (pred_sem_vit['Status']=='Outros'))]
 
-        size_tr_total = np.sum(f_tr['Tamanho'])
-        size_sf_total = np.sum(f_sf['Tamanho'])
+        size_tr_total = np.max([np.sum(f_tr.loc[f_tr['Modelo']==model, 'Tamanho']) for model in np.unique(f_tr['Modelo'])] + [0] )
+        size_sf_total = np.max([np.sum(f_sf.loc[f_sf['Modelo']==model, 'Tamanho']) for model in np.unique(f_sf['Modelo'])] + [0] )
+        size_ot_total = np.max([np.sum(f_ot.loc[f_ot['Modelo']==model, 'Tamanho']) for model in np.unique(f_ot['Modelo'])] + [0] )
         
         falhas = ''
+        outros = ''
         if size_tr_total > criterio_tr:
-            falhas += 'Trinca, '
+            falhas += 'Trinca,'
         if size_sf_total > criterio_sf:
-            falhas += 'Solda fria, '
+            falhas += 'Solda fria,'
+        if size_ot_total > criterio_ot:
+            outros += 'Outros,'
         if len(falhas) > 0:
+            num_ng_cells += 1
             results_dict['Celula'].append(c)
-            results_dict['Status'].append(falhas)
-
-        #falhas = np.unique(f)
-        #if len(falhas)>0:
-        #    falhas = list(falhas)
-        #    falhas.sort()
-        #    falhas = ','.join(falhas)
-        #    results_dict['Status'].append(falhas)
-        #    results_dict['Celula'].append(c)
+            results_dict['Status'].append(falhas + outros)
 
     results_df = pd.DataFrame()
     results_df['Celula'] = results_dict['Celula']
@@ -140,20 +108,16 @@ else:
 
     ## Results
     st.sidebar.text(f"Resultado: {resultado}")
-    st.sidebar.text(f"Células NG: {len(results_df)}")
+    st.sidebar.text(f"Células NG: {num_ng_cells}")
 
-    # Manual input
-    st.sidebar.header("Gravar predições")
-    with st.sidebar.form("my_form"):
-        comments = st.text_area(label="Insira as falhas não identificadas pelos modelos", placeholder="Formato: local_falha. Exemplo: 12C_34")
-        submit_form = st.form_submit_button("Submit")
-        if submit_form == True:
-            save_to_db(
+    ## Automatic log to DB
+    save_to_db(
                 img_panel=image,
                 filename=filename,
                 result=resultado,
                 predictions=results_df,
-                comments=comments, 
+                num_ng_cells = num_ng_cells,
+                comments='',
                 crit_sf=criterio_sf,
                 crit_tr=criterio_tr, 
                 pred_detection=pred_detection, 
@@ -163,6 +127,23 @@ else:
                 t_segmentation=meta_segmentation['t_total'].item(),
                 t_vit=meta_vit['t_total'].item()
                 )
+
+    ## Automatic log to CSV
+    log_results(
+            path='./output_folder/',
+            filename=filename,
+            result=resultado,
+            predictions=results_df,
+            num_ng_cells=num_ng_cells,
+            crit_sf=criterio_sf,
+            crit_tr=criterio_tr, 
+            pred_detection=pred_detection, 
+            pred_segmentation=pred_segmentation, 
+            pred_vit=pred_vit,
+            t_detection=meta_detection['t_total'].item(),
+            t_segmentation=meta_segmentation['t_total'].item(),
+            t_vit=meta_vit['t_total'].item()
+    )
 
     ## Panel report 
     st.sidebar.table(results_df)
@@ -228,14 +209,14 @@ else:
 
     plt.close("all")
 
-    # relatório da célula selecionada
+    ## report of the selected cell
     st.write(f"Relatório da célula selecionada ({k})")
     df = pred.loc[pred["Celula"]==k,].sort_values('Modelo')
     df['Tamanho'] = df['Tamanho'].astype(str)
 
     st.table(df)   
 
-    # Execution details and configuration
+    ## Execution details and configuration
     col_exec, col_conf = st.columns([1,1])
     with col_exec:
         with st.expander('Detalhes de execução'):
@@ -245,11 +226,5 @@ else:
             meta_show['Tempo de execução (s)'] = meta_show['Tempo de execução (s)'].copy().astype(str)
             st.write(f'Tempo total: {t_total} segundos.')
             st.table(meta_show)
-    # with col_conf:
-    #     with st.expander('Configurações'):
-    #         st.text(f"Critérios: Solda fria > {st.session_state['criterio_sf']}%, Trinca > {st.session_state['criterio_tr']}%")
-    #         if check_password():
-    #             st.session_state["criterio_sf"] = st.slider('Critério de solda fria (>X%):', min_value=0.0, max_value=10.0)
-    #             st.session_state["criterio_tr"] = st.slider('Critério de trinca (>X%):', min_value=0.0, max_value=10.0)
-    #             st.button('Logout', key=None, help=None, on_click=logout)
+
     
