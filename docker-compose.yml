@@ -5,18 +5,47 @@ networks:
         external: true
 
 services:
-  streamlit_app:
+  app_auto:
     restart: always
-    build: ./streamlit/.
-    container_name: streamlit_app
-    image: streamlit_app
+    build: ./app_auto/.
+    container_name: app_auto
+    image: app_auto
     volumes:
       - ./data:/app/data
+      - ./output_auto:/app/output_folder
       - ./images_folder:/app/images_folder
     networks:
       - rede_byd
     ports:
       - "8501:8501"
+
+  app_manual:
+    restart: always
+    build: ./app_manual/.
+    container_name: app_manual
+    image: app_manual
+    volumes:
+      - ./data:/app/data
+      - ./output_manual:/app/output_folder
+      - ./images_folder:/app/images_folder
+    networks:
+      - rede_byd
+    ports:
+      - "8503:8503"
+
+  # streamlit_app:
+  #   restart: always
+  #   build: ./streamlit/.
+  #   container_name: streamlit_app
+  #   image: streamlit_app
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./output_auto:/app/output_folder
+  #     - ./images_folder:/app/images_folder
+  #   networks:
+  #     - rede_byd
+  #   ports:
+  #     - "8501:8501"
 
   streamlit_config:
     restart: always
@@ -24,7 +53,7 @@ services:
     container_name: streamlit_config
     image: streamlit_config
     volumes:
-      - /home/unicamp/web_app/data:/app/data
+      - ./data:/app/data
     networks:
       - rede_byd
     ports:
