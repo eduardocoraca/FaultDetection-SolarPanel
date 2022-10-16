@@ -49,7 +49,6 @@ def reset():
     with open(last_file_path, "w") as fp:
         fp.write(f'path = ""')  
 
-@st.experimental_memo(show_spinner=False)
 def set_layout_config():
     st.set_page_config(layout="wide")
     st.markdown("""
@@ -242,8 +241,10 @@ def request_pred_detection(cells: dict) -> Tuple[pd.DataFrame, dict]:
                 pred = 1
             elif pred_str[1]=="1":
                 pred = 0
+            elif pred_str[2]=="1":
+                pred = 2
 
-            status = ["Solda fria", "Trinca"][pred]
+            status = ["Solda fria", "Trinca", "Outros"][pred]
             tamanho = np.array(json_resp[k+"_tamanho_"+str(n)]).squeeze()
             res = {
                 'Celula': k,

@@ -19,7 +19,6 @@ import yaml
 # for automatic mode
 
 # initialization
-@st.experimental_memo(show_spinner=False)
 def set_layout_config():
     st.set_page_config(layout="wide")
     st.markdown("""

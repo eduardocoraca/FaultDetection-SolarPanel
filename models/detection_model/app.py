@@ -77,7 +77,7 @@ def predict():
                 nms = torchvision.ops.batched_nms(boxes = out['boxes'],
                                                 scores = out['scores'],
                                                 idxs = out['labels'],
-                                                iou_threshold = 0.01)
+                                                iou_threshold = 0.1)
                 out_nms = {
                     'boxes': [],
                     'labels': [],
@@ -112,6 +112,7 @@ def predict():
                         col = (255, 0, 0)
                         trinca = 0
                         sf = 0
+                        ot = 0
                         if out_nms["labels"][n] in [2]:
                             falha = 1 # muda o flag
                             trinca = 1
@@ -124,9 +125,15 @@ def predict():
                             col = (0,0,255)
                             tam = 100*(np.abs(x1-x0)*np.abs(y1-y0))/(300*150)
                         
+                        if out_nms["labels"][n] in [3]:
+                            falha = 1
+                            ot = 1
+                            col = (255,0,0)
+                            tam = 100*(np.abs(x1-x0)*np.abs(y1-y0))/(300*150)
+
                         if falha == 1:
                             im = cv2.rectangle(im, (x0, y0), (x1, y1), col, 2)  
-                            out_dict[keys[k]+"_label_"+str(cont)] = f"{int(trinca)}{int(sf)}" #np.array([trinca, sf])
+                            out_dict[keys[k]+"_label_"+str(cont)] = f"{int(trinca)}{int(sf)}{int(ot)}" #np.array([trinca, sf])
                             out_dict[keys[k]+"_tamanho_"+str(cont)] = float(tam)
                             cont += 1
                 
