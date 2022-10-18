@@ -409,6 +409,7 @@ def get_image(uploaded_file) -> Tuple[np.array, str]:
 # logging
 @st.experimental_memo(show_spinner=False, max_entries=1)
 def log_results(path: str,
+               image_path: str,
                filename: str,
                result: str,
                predictions: pd.DataFrame,
@@ -425,6 +426,7 @@ def log_results(path: str,
     ''' Writes data to csv file.
     Args:
         path: path to the csv file
+        image_path: path to the image file
         filename: panel identifier
         results: overall panel result ('NG' or 'OK')
         predictions: dataframe with predictions per cell
@@ -439,6 +441,8 @@ def log_results(path: str,
         log_config = yaml.safe_load(c)
     date = datetime.now().strftime("%Y%m%d") # current date to be used as the CSV filename
     path = log_config['path']
+    if len(image_path)==0:
+        image_path = filename
 
     ### panels CSV
     num_celulas_ng = num_ng_cells
@@ -451,7 +455,7 @@ def log_results(path: str,
     painel = filename
     if (num_celulas_ng>0):
         with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'{painel},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr}\n')
+            f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr}\n')
 
     ### cells CSV
     if num_celulas_ng > 0:
@@ -470,7 +474,7 @@ def log_results(path: str,
                 outros = 1
             
             with open(f'{path}cells_{date}.csv', 'a') as f:
-                f.write(f'{local},{painel},{trinca},{solda_fria},{outros}\n')            
+                f.write(f'{local},{painel},{image_path},{trinca},{solda_fria},{outros}\n')            
 
     ### cells_detection CSV
     for idx, row in pred_detection.iterrows():
@@ -481,7 +485,7 @@ def log_results(path: str,
         tempo_k = t_detection
         
         with open(f'{path}cells_detection_{date}.csv', 'a') as f:
-            f.write(f'{local},{painel},{status_k},{tamanho_k},{tempo_k}\n') 
+            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k},{tempo_k}\n') 
 
     ### cells_segmentation CSV
     for idx, row in pred_segmentation.iterrows():
@@ -491,7 +495,7 @@ def log_results(path: str,
         tamanho_k = row['Tamanho']
         tempo_k = t_segmentation
         with open(f'{path}cells_segmentation_{date}.csv', 'a') as f:
-            f.write(f'{local},{painel},{status_k},{tamanho_k},{tempo_k}\n') 
+            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k},{tempo_k}\n') 
 
     ### cells_vit CSV
     for idx, row in pred_vit.iterrows():
@@ -501,7 +505,8 @@ def log_results(path: str,
         tamanho_k = row['Tamanho']
         tempo_k = t_vit
         with open(f'{path}cells_vit_{date}.csv', 'a') as f:
-            f.write(f'{local},{painel},{status_k},{tamanho_k},{tempo_k}\n') 
+            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k},{tempo_k}\n') 
+
 
 def save_to_db(img_panel: np.array,
                filename: str,

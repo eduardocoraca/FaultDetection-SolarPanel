@@ -131,6 +131,7 @@ else:
     ## Automatic log to CSV
     log_results(
             path='./output_folder/',
+            image_path=image_path,
             filename=filename,
             result=resultado,
             predictions=results_df,
