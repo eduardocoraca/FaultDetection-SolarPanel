@@ -15,7 +15,7 @@ gpus = tf.config.list_physical_devices("GPU")
 print(gpus)
 if gpus:
     for gpu in gpus:
-        tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5000)])
+        tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=700)])
 
 models_path = 'projeto/ViT_models/'
 m1,m2,m3,m4 = loading_models(models_path)

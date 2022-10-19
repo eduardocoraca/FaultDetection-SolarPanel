@@ -15,16 +15,17 @@ from datetime import datetime
 import base64
 from typing import Tuple, Dict, List
 import yaml
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
+from watchdog.observers import Observer, PollingObserver
 import last_file
 
 # for automatic mode
-class Watchdog(FileSystemEventHandler):
+class Watchdog(PatternMatchingEventHandler):
     def __init__(self, hook):
         self.hook = hook
+        PatternMatchingEventHandler.__init__(self, patterns=['*.jpg'])
 
-    def on_modified(self, event):
+    def on_any_event(self, event):
         if (event.is_directory==False) & (event.src_path.endswith('.jpg')):
             self.hook(event.src_path)
 
@@ -37,7 +38,7 @@ def update_last_file(img_path):
 # initialization
 @st.experimental_memo(show_spinner=False)
 def install_monitor():
-    observer = Observer()
+    observer = PollingObserver()
     observer.schedule(
         Watchdog(update_last_file),
         path="images_folder/",
