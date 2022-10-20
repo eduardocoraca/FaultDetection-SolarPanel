@@ -16,8 +16,9 @@ import base64
 from typing import Tuple, Dict, List
 import yaml
 from watchdog.events import FileSystemEventHandler, PatternMatchingEventHandler
-from watchdog.observers import Observer, PollingObserver
+from watchdog.observers.polling import PollingObserver
 import last_file
+import os
 
 # for automatic mode
 class Watchdog(PatternMatchingEventHandler):
@@ -472,6 +473,27 @@ def log_results(path: str,
     date = datetime.now().strftime("%Y%m%d") # current date to be used as the CSV filename
     path = log_config['path']
 
+    ## creating daily reports (if not previously created)
+    if not os.path.isfile(f'{path}panels_{date}.csv'):
+        with open(f'{path}panels_{date}.csv', 'a') as f:
+            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local-ot\n')
+
+    if not os.path.isfile(f'{path}cells_{date}.csv'):
+        with open(f'{path}cells_{date}.csv', 'a') as f:
+            f.write(f'local,filename,path,trinca,solda_fria,outros\n')            
+
+    if not os.path.isfile(f'{path}cells_detection_{date}.csv'):
+        with open(f'{path}cells_detection_{date}.csv', 'a') as f:
+            f.write(f'local,filename,path,falha,tamanho,tempo\n') 
+
+    if not os.path.isfile(f'{path}cells_segmentation_{date}.csv'):
+        with open(f'{path}cells_segmentation_{date}.csv', 'a') as f:
+            f.write(f'local,filename,path,falha,tamanho,tempo\n') 
+
+    if not os.path.isfile(f'{path}cells_vit_{date}.csv'):
+        with open(f'{path}cells_vit_{date}.csv', 'a') as f:
+            f.write(f'local,filename,path,falha,tamanho,tempo\n') 
+
     ### panels CSV
     num_celulas_ng = num_ng_cells
     if result == "Painel NG":
@@ -479,11 +501,30 @@ def log_results(path: str,
     else:
         status = 0
     
+    # listing the cells for each failure mode
+    tr_str = ''
+    sf_str = ''
+    ot_str = ''
+    for idx, row in predictions.iterrows():
+        cell = row['Celula']
+        if 'Trinca' in row['Status'].split(','):
+            tr_str += f'-{cell}'
+        if 'Solda fria' in row['Status'].split(','):
+            sf_str += f'-{cell}'
+        if 'Outros' in row['Status'].split(','):
+            ot_str += f'-{cell}'
+    if len(tr_str)>0:
+        tr_str = tr_str[1:] # removing first '-'
+    if len(sf_str)>0:
+        sf_str = sf_str[1:] # removing first '-'
+    if len(ot_str)>0:
+        ot_str = ot_str[1:] # removing first '-'
+
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     painel = filename
     if (num_celulas_ng>0):
         with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr}\n')
+            f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str}\n')
 
     ### cells CSV
     if num_celulas_ng > 0:

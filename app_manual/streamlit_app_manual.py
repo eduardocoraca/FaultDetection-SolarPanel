@@ -135,24 +135,22 @@ else:
                 t_vit=meta_vit['t_total'].item()
                 )
 
-    # Automatic results logging
-
-    log_results(
-            path='./output_folder/',
-            image_path='',
-            filename=filename,
-            result=resultado,
-            predictions=results_df,
-            num_ng_cells = num_ng_cells,
-            crit_sf=criterio_sf,
-            crit_tr=criterio_tr, 
-            pred_detection=pred_detection, 
-            pred_segmentation=pred_segmentation, 
-            pred_vit=pred_vit,
-            t_detection=meta_detection['t_total'].item(),
-            t_segmentation=meta_segmentation['t_total'].item(),
-            t_vit=meta_vit['t_total'].item()
-    )
+            log_results(
+                    path='./output_folder/',
+                    image_path='',
+                    filename=filename,
+                    result=resultado,
+                    predictions=results_df,
+                    num_ng_cells = num_ng_cells,
+                    crit_sf=criterio_sf,
+                    crit_tr=criterio_tr, 
+                    pred_detection=pred_detection, 
+                    pred_segmentation=pred_segmentation, 
+                    pred_vit=pred_vit,
+                    t_detection=meta_detection['t_total'].item(),
+                    t_segmentation=meta_segmentation['t_total'].item(),
+                    t_vit=meta_vit['t_total'].item()
+                )
 
     ## Panel report 
     st.sidebar.table(results_df)
