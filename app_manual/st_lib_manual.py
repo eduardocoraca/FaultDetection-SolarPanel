@@ -448,7 +448,7 @@ def log_results(path: str,
     ## creating daily reports (if not previously created)
     if not os.path.isfile(f'{path}panels_{date}.csv'):
         with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local-ot\n')
+            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot\n')
 
     if not os.path.isfile(f'{path}cells_{date}.csv'):
         with open(f'{path}cells_{date}.csv', 'a') as f:
