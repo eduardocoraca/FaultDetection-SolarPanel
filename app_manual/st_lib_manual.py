@@ -448,7 +448,7 @@ def log_results(path: str,
     ## creating daily reports (if not previously created)
     if not os.path.isfile(f'{path}panels_{date}.csv'):
         with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot\n')
+            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot,t_detection,t_segmentation,t_vit\n')
 
     if not os.path.isfile(f'{path}cells_{date}.csv'):
         with open(f'{path}cells_{date}.csv', 'a') as f:
@@ -456,15 +456,15 @@ def log_results(path: str,
 
     if not os.path.isfile(f'{path}cells_detection_{date}.csv'):
         with open(f'{path}cells_detection_{date}.csv', 'a') as f:
-            f.write(f'local,filename,path,falha,tamanho,tempo\n') 
+            f.write(f'local,filename,path,falha,tamanho\n') 
 
     if not os.path.isfile(f'{path}cells_segmentation_{date}.csv'):
         with open(f'{path}cells_segmentation_{date}.csv', 'a') as f:
-            f.write(f'local,filename,path,falha,tamanho,tempo\n') 
+            f.write(f'local,filename,path,falha,tamanho\n') 
 
     if not os.path.isfile(f'{path}cells_vit_{date}.csv'):
         with open(f'{path}cells_vit_{date}.csv', 'a') as f:
-            f.write(f'local,filename,path,falha,tamanho,tempo\n') 
+            f.write(f'local,filename,path,falha,tamanho\n') 
 
     ### panels CSV
     num_celulas_ng = num_ng_cells
@@ -496,7 +496,7 @@ def log_results(path: str,
     painel = filename
     if (num_celulas_ng>0):
         with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str}\n')
+            f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str},{t_detection},{t_segmentation},{t_vit}\n')
     
     ### cells CSV
     if num_celulas_ng > 0:
@@ -523,10 +523,9 @@ def log_results(path: str,
         painel = filename
         status_k = row['Status']
         tamanho_k = row['Tamanho']
-        tempo_k = t_detection
         
         with open(f'{path}cells_detection_{date}.csv', 'a') as f:
-            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k},{tempo_k}\n') 
+            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k}\n') 
 
     ### cells_segmentation CSV
     for idx, row in pred_segmentation.iterrows():
@@ -534,9 +533,8 @@ def log_results(path: str,
         painel = filename
         status_k = row['Status']
         tamanho_k = row['Tamanho']
-        tempo_k = t_segmentation
         with open(f'{path}cells_segmentation_{date}.csv', 'a') as f:
-            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k},{tempo_k}\n') 
+            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k}\n') 
 
     ### cells_vit CSV
     for idx, row in pred_vit.iterrows():
@@ -544,9 +542,8 @@ def log_results(path: str,
         painel = filename
         status_k = row['Status']
         tamanho_k = row['Tamanho']
-        tempo_k = t_vit
         with open(f'{path}cells_vit_{date}.csv', 'a') as f:
-            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k},{tempo_k}\n') 
+            f.write(f'{local},{painel},{image_path},{status_k},{tamanho_k}\n') 
 
 
 def save_to_db(img_panel: np.array,
