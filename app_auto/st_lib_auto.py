@@ -104,10 +104,11 @@ def numpy_to_binary(arr):
 
 # models
 @st.experimental_memo(show_spinner=False, max_entries=1)
-def request_cell_split(img: np.array) -> dict:
+def request_cell_split(img: np.array, threshold: float) -> Tuple[dict,np.array,dict,dict]:
     ''' Sends panel image to 'segment_cell' model
     Args:
         img: (img_x, img_y) np.array with dtype=np.uint8 
+        threshold: limit value of the mean cell intensity
     Returns:
         dict: dict of cells, with keys relrated to each cell position. Eg. 1A,...,24F
     '''
@@ -138,7 +139,7 @@ def request_cell_split(img: np.array) -> dict:
     end = time.time()    
     print(f"Tempo para recorte: {end-start}s.")
 
-    # pd.DataFrame containing metadata from the model
+    # DataFrame containing metadata from the model
     df_meta = pd.DataFrame()
     df_meta['model'] = ['Recorte']
     df_meta['t_request'] = [0]
@@ -148,7 +149,21 @@ def request_cell_split(img: np.array) -> dict:
     df_meta['processed_cells'] = [0]
     df_meta['t_total'] = [end-start]
 
-    return cells, img_painel, df_meta
+    # DataFrame containing predictions if cells are dark
+    results_list = []
+    for k in cells.keys():
+        if cells[k].mean() < threshold:
+            res = {
+                    'Celula': k,
+                    'Modelo': '-',
+                    'Status': 'Célula escura',
+                    'Tamanho': np.round(100,2),
+                    'Unidade': '%',
+                }
+            results_list.append(res)
+    preds = pd.DataFrame(results_list)
+
+    return cells, img_painel, df_meta, preds
 
 @st.experimental_memo(show_spinner=False, max_entries=1)
 def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
@@ -204,10 +219,12 @@ def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
     return content
 
 @st.experimental_memo(show_spinner=False, max_entries=1)
-def request_pred_detection(cells: dict) -> Tuple[pd.DataFrame, dict]:
-    '''Sends cells for 'detection_model'.
+def request_pred_detection(cells: dict, threshold: float) -> Tuple[pd.DataFrame, dict, pd.DataFrame]:
+    '''Sends cells for 'detection_model'. Returns empty predictions if cell[k].mean() < threshold
+    for any k in cell.keys().
     Args:
         cells: dict of cells
+        threshold: mean pixel intensity threshold to process
     Returns:
         df: pd.DataFrame containing the predictions for each cell
         cells_fault: dict of cells with predictions (bounding boxes)
@@ -216,6 +233,26 @@ def request_pred_detection(cells: dict) -> Tuple[pd.DataFrame, dict]:
     cells_dict = {}
     for k in cells.keys():
         img = cells[k] # each image is a 150x300 matrix
+        if img.mean() < threshold:
+            # execution is stopped if cell is dark, returns empty outputs and 0 exec. time
+            df_meta = pd.DataFrame()
+            df_meta['model'] = ['Detecção']
+            df_meta['t_request'] = [0.0]
+            df_meta['t_preprocessing'] = [0.0]
+            df_meta['t_processing'] = [0.0]
+            df_meta['t_postprocessing'] = [0.0]
+            df_meta['processed_cells'] = [0.0]
+            df_meta['t_total'] = [0.0]
+            pred = pd.DataFrame(
+                {
+                    'Celula': [],
+                    'Modelo': [],
+                    'Status': [],
+                    'Tamanho': [],
+                    'Unidade': [],
+                }
+                )
+            return pred, {}, df_meta
         img = base64.b64encode(img).decode('utf-8')
         cells_dict[k] = img
 
@@ -275,10 +312,12 @@ def request_pred_detection(cells: dict) -> Tuple[pd.DataFrame, dict]:
     return df, cells_fault, df_meta
 
 @st.experimental_memo(show_spinner=False, max_entries=1)
-def request_pred_segmentation(cells: dict) -> Tuple[pd.DataFrame, dict]:
-    '''Sends cells for 'segmentation_model'.
+def request_pred_segmentation(cells: dict, threshold: float) -> Tuple[pd.DataFrame, dict, pd.DataFrame]:
+    '''Sends cells for 'segmentation_model'. Returns empty predictions if cell[k].mean() < threshold
+    for any k in cell.keys().
     Args:
         cells: dict of cells
+        threshold: mean pixel intensity threshold to process
     Returns:
         df: pd.DataFrame containing the predictions for each cell
         cells_fault: dict of cells with predictions (pixel-level segmentation)
@@ -287,6 +326,26 @@ def request_pred_segmentation(cells: dict) -> Tuple[pd.DataFrame, dict]:
     cells_dict = {}
     for k in cells.keys():
         img = cells[k] # each image is a 150x300 matrix
+        if img.mean() < threshold:
+            # execution is stopped if cell is dark, returns empty outputs and 0 exec. time
+            df_meta = pd.DataFrame()
+            df_meta['model'] = ['Segmentação']
+            df_meta['t_request'] = [0.0]
+            df_meta['t_preprocessing'] = [0.0]
+            df_meta['t_processing'] = [0.0]
+            df_meta['t_postprocessing'] = [0.0]
+            df_meta['processed_cells'] = [0.0]
+            df_meta['t_total'] = [0.0]
+            pred = pd.DataFrame(
+                {
+                    'Celula': [],
+                    'Modelo': [],
+                    'Status': [],
+                    'Tamanho': [],
+                    'Unidade': [],
+                }
+                )
+            return pred, {}, df_meta
         img = base64.b64encode(img).decode('utf-8')
         cells_dict[k] = img
 
@@ -347,10 +406,12 @@ def request_pred_segmentation(cells: dict) -> Tuple[pd.DataFrame, dict]:
     return df, cells_fault, df_meta
 
 @st.experimental_memo(show_spinner=False, max_entries=1)
-def request_pred_vit(cells: dict) -> Tuple[pd.DataFrame, dict]:
-    '''Sends cells for 'vit_model'.
+def request_pred_vit(cells: dict, threshold: float) -> Tuple[pd.DataFrame, dict, pd.DataFrame]:
+    '''Sends cells for 'vit_model'. Returns empty predictions if cell[k].mean() < threshold
+    for any k in cell.keys().
     Args:
         cells: dict of cells
+        threshold: mean pixel intensity threshold to process
     Returns:
         df: pd.DataFrame containing the predictions for each cell
         cells_fault: dict of cells with predictions (pixel-level attention map)
@@ -359,6 +420,26 @@ def request_pred_vit(cells: dict) -> Tuple[pd.DataFrame, dict]:
     cells_dict = {}
     for k in cells.keys():
         img = cells[k] # each image is a 150x300 matrix
+        if img.mean() < threshold:
+            # execution is stopped if cell is dark, returns empty outputs and 0 exec. time
+            df_meta = pd.DataFrame()
+            df_meta['model'] = ['Vision Transformer']
+            df_meta['t_request'] = [0.0]
+            df_meta['t_preprocessing'] = [0.0]
+            df_meta['t_processing'] = [0.0]
+            df_meta['t_postprocessing'] = [0.0]
+            df_meta['processed_cells'] = [0.0]
+            df_meta['t_total'] = [0.0]
+            pred = pd.DataFrame(
+                {
+                    'Celula': [],
+                    'Modelo': [],
+                    'Status': [],
+                    'Tamanho': [],
+                    'Unidade': [],
+                }
+                )
+            return pred, {}, df_meta
         img = cv2.resize(img, (150,280), cv2.INTER_AREA) # converting to 150x280 for ViT
         img = base64.b64encode(img).decode('utf-8')
         cells_dict[k] = img
@@ -630,10 +711,8 @@ def save_to_db(img_panel: np.array,
         connection.close()
 
     ### tabela celulas
+    valores_a_inserir = [] # lista onde serao armazendos os valores (tuplas) a serem inseridos
     if num_celulas_ng > 0:
-        connection = mysql.connector.connect(**mysql_config)
-        cursor = connection.cursor()
-        valores_a_inserir = [] # lista onde serao armazendos os valores (tuplas) a serem inseridos
         for k in np.unique(predictions["Celula"]):
             local = k
             painel = filename
@@ -649,17 +728,17 @@ def save_to_db(img_panel: np.array,
                 solda_fria = 1
             if "Outros" in status_k:
                 outros = 1
-            
             valores_a_inserir.append((id_painel, local, painel, trinca, solda_fria, outros))
-        
-    cursor.executemany('INSERT INTO celulas (id_painel, local, painel, trinca, solda_fria, outros) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
-    connection.commit()
-    cursor.close()
-    connection.close()
+
+    if len(valores_a_inserir) > 0:
+        connection = mysql.connector.connect(**mysql_config)
+        cursor = connection.cursor()        
+        cursor.executemany('INSERT INTO celulas (id_painel, local, painel, trinca, solda_fria, outros) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
+        connection.commit()
+        cursor.close()
+        connection.close()
 
     ### tabela celulas deteccao
-    connection = mysql.connector.connect(**mysql_config)
-    cursor = connection.cursor()
     valores_a_inserir = [] # lista onde serao armazendos os valores (tuplas) a serem inseridos
     for idx, row in pred_detection.iterrows():
         local = row['Celula']
@@ -668,17 +747,17 @@ def save_to_db(img_panel: np.array,
         status_k = row['Status']
         tamanho_k = row['Tamanho']
         tempo_k = t_detection
-            
         valores_a_inserir.append((id_painel, local, painel, status_k, tamanho_k, tempo_k))
         
-    cursor.executemany('INSERT INTO celulas_deteccao (id_painel, local, painel, status, tamanho, tempo) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
-    connection.commit()
-    cursor.close()
-    connection.close()
+    if len(valores_a_inserir) > 0:
+        connection = mysql.connector.connect(**mysql_config)
+        cursor = connection.cursor()
+        cursor.executemany('INSERT INTO celulas_deteccao (id_painel, local, painel, status, tamanho, tempo) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
+        connection.commit()
+        cursor.close()
+        connection.close()
 
     ### tabela celulas segmentacao
-    connection = mysql.connector.connect(**mysql_config)
-    cursor = connection.cursor()
     valores_a_inserir = [] # lista onde serao armazendos os valores (tuplas) a serem inseridos
     for idx, row in pred_segmentation.iterrows():
         local = row['Celula']
@@ -688,15 +767,16 @@ def save_to_db(img_panel: np.array,
         tamanho_k = row['Tamanho']
         tempo_k = t_segmentation
         valores_a_inserir.append((id_painel, local, painel, status_k, tamanho_k, tempo_k))
-        
-    cursor.executemany('INSERT INTO celulas_segmentacao (id_painel, local, painel, status, tamanho, tempo) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
-    connection.commit()
-    cursor.close()
-    connection.close()
+
+    if len(valores_a_inserir) > 0:   
+        connection = mysql.connector.connect(**mysql_config)
+        cursor = connection.cursor()
+        cursor.executemany('INSERT INTO celulas_segmentacao (id_painel, local, painel, status, tamanho, tempo) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
+        connection.commit()
+        cursor.close()
+        connection.close()
 
     ### tabela celulas vit
-    connection = mysql.connector.connect(**mysql_config)
-    cursor = connection.cursor()
     valores_a_inserir = [] # lista onde serao armazendos os valores (tuplas) a serem inseridos
     for idx, row in pred_vit.iterrows():
         local = row['Celula']
@@ -706,10 +786,14 @@ def save_to_db(img_panel: np.array,
         tamanho_k = row['Tamanho']
         tempo_k = t_vit
         valores_a_inserir.append((id_painel, local, painel, status_k, tamanho_k, tempo_k))
-        
-    cursor.executemany('INSERT INTO celulas_vit (id_painel, local, painel, status, tamanho, tempo) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
-    connection.commit()
-    cursor.close()
-    connection.close()
+
+    if len(valores_a_inserir) > 0:
+        connection = mysql.connector.connect(**mysql_config)
+        cursor = connection.cursor()
+        cursor.executemany('INSERT INTO celulas_vit (id_painel, local, painel, status, tamanho, tempo) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
+        connection.commit()
+        cursor.close()
+        connection.close()
+
 
 # 

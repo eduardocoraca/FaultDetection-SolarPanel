@@ -42,27 +42,38 @@ else:
     st.sidebar.text(f"Critério SF: >{criterio_sf}%")
     st.sidebar.text(f"Critério OT: >{criterio_ot}%")
 
+    ## Initialization of dataframes
+    preds_list = [] # list containing prediction dataframes
+    metas_list = [] # list containing metadata dataframes
+    threshold = 50
+
     ## Request: cell segmentation
-    cells, img_painel, meta_split = request_cell_split(image) # cells: dict with the local as key and a 150x300 matrix
+    cells, img_painel, meta_split, preds_split = request_cell_split(image, threshold=threshold) # cells: dict with the local as key and a 150x300 matrix
+    preds_list.append(preds_split)
+    metas_list.append(meta_split)
 
     ## Request: detection
-    pred_detection, cells_detection, meta_detection = request_pred_detection(cells)
+    pred_detection, cells_detection, meta_detection = request_pred_detection(cells, threshold=threshold)
+    preds_list.append(pred_detection)
+    metas_list.append(meta_detection)
 
     ## Request: segmentation model
-    pred_segmentation, cells_segmentation, meta_segmentation = request_pred_segmentation(cells)
+    pred_segmentation, cells_segmentation, meta_segmentation = request_pred_segmentation(cells, threshold=threshold)
+    preds_list.append(pred_segmentation)
+    metas_list.append(meta_segmentation)
 
     ## Request: ViT model
-    pred_vit, cells_vit, meta_vit = request_pred_vit(cells)
+    pred_vit, cells_vit, meta_vit = request_pred_vit(cells, threshold=threshold)
+    preds_list.append(pred_vit)
+    metas_list.append(meta_vit)
 
     ## Results Dataframes
-    pred = pd.concat((pred_detection, pred_segmentation, pred_vit)).sort_values(by="Celula", ascending=True)
+    pred = pd.concat(preds_list).sort_values(by="Celula", ascending=True)
     pred_sem_vit = pred[pred['Modelo'] != 'Vision Transformer']    
-    #pred_sem_vit = pd.concat((pred_detection, pred_segmentation)).sort_values(by="Celula", ascending=True)
-    
     pred = pred.reset_index(drop=True)
     pred_sem_vit = pred_sem_vit.reset_index(drop=True)
 
-    meta = pd.concat((meta_split, meta_detection, meta_segmentation, meta_vit))
+    meta = pd.concat(metas_list)
     meta = meta.reset_index(drop=True)
 
     if len(pred.index)>0:

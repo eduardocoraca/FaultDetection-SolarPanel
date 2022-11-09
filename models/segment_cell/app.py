@@ -47,7 +47,7 @@ def getCells(img):
     img[img<0] = 0
     img = np.asarray(255*img, dtype=np.uint8)
 
-    img[img<30] = 30
+    img[img<30] = 0
     Nx = 24
     Ny = 6
 
@@ -86,11 +86,11 @@ def getCells(img):
                 dy = wy
                 e = 20
                 rec0 = recortar(img, X[j, i], Y[j, i], dx, dy, 0)
-                if rec0.mean() > 10:
+                if rec0.mean() > 30:
                     rec1 = recortar(img, X[j, i], Y[j, i], dx, dy, e)
                     rec2 = recortarRefinadoJanela(rec1, e)
                 else:
-                    rec2 = rec0*0
+                    rec2 = rec0
                 coordY = np.flip(['24','23','22','21','20','19','18','17','16','15','14','13','12', '11', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'])[i]
                 coordX = ['A','B','C','D','E','F'][j]
                 rec2 = np.expand_dims(rec2, 2)
