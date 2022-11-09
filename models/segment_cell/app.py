@@ -5,25 +5,25 @@ import json
 import base64
 
 # funcoes necessarias para o recorte das celulas
-def recortar(img, xc, yc, dx, dy, e):
-    xidx = np.arange(xc - dx // 2 - e, xc + dx // 2 + e)
-    yidx = np.arange(yc - dy // 2 - e, yc + dy // 2 + e)
+def recortar(img, xc, yc, dx, dy, ex, ey):
+    xidx = np.arange(xc - dx // 2 - ex, xc + dx // 2 + ex)
+    yidx = np.arange(yc - dy // 2 - ey, yc + dy // 2 + ey)
 
     # flags to indicate if the cell is in the limit of the panel
     right = False
     left = False
     bottom = False
     top = False
-    if xc + dx // 2 + e >= img.shape[1]:
+    if xc + dx // 2 + ex >= img.shape[1]:
         xidx[xidx>=img.shape[1]] = img.shape[1] - (xidx[xidx>=img.shape[1]] - img.shape[1] + 1) # mirror
         right = True
-    if xc - dx // 2 - e < 0:
+    if xc - dx // 2 - ex < 0:
         xidx[xidx<0] = np.abs(xidx[xidx<0]) # mirror
         left = True
-    if yc + dy // 2 + e >= img.shape[0]:
+    if yc + dy // 2 + ey >= img.shape[0]:
         yidx[yidx>=img.shape[0]] = img.shape[0] - (yidx[yidx>=img.shape[0]] - img.shape[0] + 1) # mirror
         bottom = True
-    if yc - dy // 2 - e < 0:
+    if yc - dy // 2 - ey < 0:
         yidx[yidx<0] = np.abs(yidx[yidx<0]) # mirror
         top = True 
 
@@ -77,6 +77,8 @@ def getCells(img):
     xc = np.linspace((wx//2), len_x-(wx//2), Nx, dtype=int)
     yc = np.linspace((wy//2), len_y-(wy//2), Ny, dtype=int)    
     X, Y = np.meshgrid(xc, yc)
+    ex = 30
+    ey = 12
     if wx>100:
         out = {}
         out_1 = {}
@@ -84,11 +86,10 @@ def getCells(img):
             for j in range(X.shape[0]):
                 dx = wx
                 dy = wy
-                e = 20
-                rec0 = recortar(img, X[j, i], Y[j, i], dx, dy, 0)
+                rec0 = recortar(img, X[j, i], Y[j, i], dx, dy, 0, 0)
                 if rec0.mean() > 30:
-                    rec1 = recortar(img, X[j, i], Y[j, i], dx, dy, e)
-                    rec2 = recortarRefinadoJanela(rec1, e)
+                    rec1 = recortar(img, X[j, i], Y[j, i], dx, dy, ex, ey)
+                    rec2 = recortarRefinadoJanela(rec1, ex, ey)
                 else:
                     rec2 = rec0
                 coordY = np.flip(['24','23','22','21','20','19','18','17','16','15','14','13','12', '11', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'])[i]
@@ -111,7 +112,7 @@ def checar(path_dados, file):
 	else:
 		return True
 
-def recortarRefinadoJanela(img, e):
+def recortarRefinadoJanela(img, ex, ey):
     len_y, len_x = img.shape
     imgcopy = img.copy()
     imgcopy = (imgcopy - imgcopy.min())/(imgcopy.max()-imgcopy.min()+1)
@@ -120,12 +121,12 @@ def recortarRefinadoJanela(img, e):
     imgcopy[imgcopy<50] = 0
     blur = cv2.GaussianBlur(imgcopy, (5, 5), 0)
     imgcp = cv2.Sobel(blur, cv2.CV_32F, 1, 0)
-    x_l = np.argmax(imgcp[int(0.25*len_y):int(0.75*len_y),:][:,0:2*e].mean(axis=0))
-    x_r = imgcp.shape[1] - (2*e - np.argmin(imgcp[int(0.25*len_y):int(0.75*len_y),:][:,-2*e:].mean(axis=0)))
+    x_l = np.argmax(imgcp[int(0.25*len_y):int(0.75*len_y),:][:,0:2*ex].mean(axis=0))
+    x_r = imgcp.shape[1] - (2*ex - np.argmin(imgcp[int(0.25*len_y):int(0.75*len_y),:][:,-2*ex:].mean(axis=0)))
     
     imgcp = cv2.Sobel(blur[:, x_l:x_r], cv2.CV_32F, 0, 1)
-    p_max = np.argmax(imgcp[0:2*e, int(0.25*len_x):int(0.75*len_x)].mean(axis=1))
-    p_min = imgcp.shape[0] - (2*e - np.argmin(imgcp[-2*e:, int(0.25*len_x):int(0.75*len_x)].mean(axis=1)))
+    p_max = np.argmax(imgcp[0:2*ey, int(0.25*len_x):int(0.75*len_x)].mean(axis=1))
+    p_min = imgcp.shape[0] - (2*ey - np.argmin(imgcp[-2*ey:, int(0.25*len_x):int(0.75*len_x)].mean(axis=1)))
     y_l = p_max
     y_r = p_min
     return img[:, x_l:x_r][y_l:y_r, :]
