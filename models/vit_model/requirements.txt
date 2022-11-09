@@ -5,3 +5,4 @@ waitress==2.1.1
 protobuf==3.20.*
 scikit-image==0.19.2
 opencv-contrib-python==4.6.0.66
+tensorflow_addons==0.10.0

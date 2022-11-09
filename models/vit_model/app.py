@@ -3,7 +3,7 @@ import numpy as np
 from skimage import util
 import base64
 import tensorflow as tf
-# import tensorflow_addons as tfa
+import tensorflow_addons as tfa
 import time
 from flask import Flask, request
 import json
@@ -15,7 +15,7 @@ gpus = tf.config.list_physical_devices("GPU")
 print(gpus)
 if gpus:
     for gpu in gpus:
-        tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=700)])
+        tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5000)])
 
 models_path = 'projeto/ViT_models/'
 m1,m2,m3,m4 = loading_models(models_path)
@@ -53,14 +53,16 @@ def predict():
         
         ############## Do the predictions ####################
         start = time.time()
-        preds, out_imgs, aff_ar = ml_predict_bs(d_data, res, m1, m2, m3, m4)
+        # preds, out_imgs, aff_ar = ml_predict_bs(d_data, res, m1, m2, m3, m4)
+        dic_out = ml_predict_bs(d_data,res, m1, m2, m3, m4)
         stop = time.time()
         time_processing = stop - start
         ######################################################
         
         ########### Enconde the results ########################
         start = time.time()
-        enc_res=encode_response(encoded_data, preds, aff_ar, out_imgs)
+        #enc_res=encode_response(encoded_data, preds, aff_ar, out_imgs)
+        enc_res = encode_response(dic_out)
         stop = time.time()
         time_postprocessing = stop - start
         ########################################################

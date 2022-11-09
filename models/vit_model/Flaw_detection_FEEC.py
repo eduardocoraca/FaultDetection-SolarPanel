@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Sep 23 10:52:00 2022
-v1_3
+Created on Thu Oct 27 12:47:58 2022
+
+@author: lenin
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 24 16:24:38 2022
+
 @author: lenin
 """
 
@@ -10,7 +17,7 @@ import numpy as np
 from skimage import util
 import base64
 import tensorflow as tf
-#import tensorflow_addons as tfa
+import tensorflow_addons as tfa
 
 #############################Area trinca########################################################################
 
@@ -248,6 +255,15 @@ def function_trinca(image):
 
 ################################################################################################################
 
+def function_outros(img):
+    data=np.copy(img)
+    data[data<=np.min(data)+25]=1
+    data[data>np.min(data)+25]=0
+    prop=data.mean()*100
+    prop=round(prop,2)
+    
+    return data, prop
+
 def attention_rollout_map(image, attention_score_dict, model_type = 0, PATCH_SIZE = 7, image_size = (196, 105)):
 
     num_cls_tokens = 1
@@ -389,127 +405,146 @@ def decode_dic(dic_info):
 def loading_models(models_path):
     
     if 'trinca_classifier' not in locals():
-        trinca_classifier =  tf.keras.models.load_model(models_path+'vit_classifier_TvSF', compile=False)
-        flaw_classifier =  tf.keras.models.load_model(models_path+'vit_classifier_Flaw',  compile=False)
-        trinca_att0 = tf.keras.models.load_model(models_path+'vit_att0_TvSF', compile=False)
-        trinca_att1 = tf.keras.models.load_model(models_path+'vit_att1_TvSF', compile=False)
+        flaw_classifier =  tf.keras.models.load_model(models_path+'vit_classifier_Flaw_Ou_3',  compile=False)
+        trinca_classifier =  tf.keras.models.load_model(models_path+'vit_classifier_TvsSFvsOu_weight_2', compile=False)
+        trinca_att0 = tf.keras.models.load_model(models_path+'vit_att0_TvsSFvsOu_weight_2', compile=False)
+        trinca_att1 = tf.keras.models.load_model(models_path+'vit_att1_TvsSFvsOu_weight_2', compile=False)
     
     return  trinca_classifier,  flaw_classifier,  trinca_att0, trinca_att1
 
 def ml_predict_bs(or_data,dic_info, trinca_classifier, flaw_classifier, trinca_att0, trinca_att1): 
     
     bz=5
-    cont=0
-    cf=0
-    ct=0
-    cts=0
-    aux=[]
-    aux1=[]
-    aux2=[]
-    aux3=[]
-    aux4=[]
-    aux5=[]
-    imgs_ot=[]
-    preds_c=[]
-    areas0=[]
-    areas1=[]
-    imorg=list(or_data.values())
     images=list(dic_info.values())
-    im2=np.copy(images)
+    labels=list(dic_info.keys())
     images=np.asarray(images)
     images=np.expand_dims(images,-1)
+    aux=[]
+    lbl=[]
+    dic_out={}
     
     with tf.device('gpu'):
         predu_falha_p = flaw_classifier.predict(images, batch_size=bz)
     predu_falha= np.argmax(predu_falha_p,axis=1)
     
+
     for e in range(len(predu_falha)):
         if predu_falha[e]==1:
             aux.append(images[e])
-    
+            lbl.append(labels[e])
     aux=np.asarray(aux)
+    
     with tf.device('gpu'):
         pred2=trinca_classifier.predict(aux, batch_size=bz)
+    
+    
     pred2= np.argmax(pred2,axis=1)
     pred2=pred2+1
     
-    for e in range(len(predu_falha)):
-        if predu_falha[e]==1:    
-            if pred2[e-cts]==1:
-                aux3.append(aux[e-cts])
-            else:
-                aux4.append(e)
+    
+    sfl=[]
+    lsf=[]
+    #trl=[]
+    ltr=[]
+    #otl=[]
+    lot=[]
+    
+    for e in range(len(pred2)):
+        if pred2[e]==1:
+            sfl.append(aux[e])
+            lsf.append(lbl[e])
+            
+        elif pred2[e]==2:
+            #trl.append(aux[e])
+            ltr.append(lbl[e])
+            
         else:
-            cts+=1
+            #otl.append(aux[e])
+            lot.append(lbl[e])
+            
+    
+    
+    sfl=np.asarray(sfl)    
+   
+    img_ar_sf=[]
+    area_sf=[] 
+    if sfl.shape[0]>0:    
+        with tf.device('gpu'):
+            hh1 = trinca_att1.predict(sfl,batch_size=bz)
+            hh0 = trinca_att0.predict(sfl,batch_size=bz)
+        H = np.concatenate((hh0,hh1),axis = 1)
         
-    aux3=np.asarray(aux3)
-    
-    with tf.device('gpu'):
-        hh1 = trinca_att1.predict(aux3,batch_size=bz)
-        hh0 = trinca_att0.predict(aux3,batch_size=bz)
-    H = np.concatenate((hh0,hh1),axis = 1)
-         
-    for e in range(len(H)):
-        hd=np.expand_dims(H[e], 0)
-        _,attention, _ = attention_rollout_map(aux3[e,:,:,0],hd)
-        SF_img = np.where(attention > 2*np.mean(attention),1,0)
-        AREA = np.sum(SF_img)/(SF_img.shape[1] * SF_img.shape[0])*100
-        AREA=round(AREA,2)
-        aux2.append(SF_img)
-        areas0.append(AREA)
-    
-    for e in aux4:
-        result, porc=function_trinca(imorg[e])
-        aux5.append(result)
-        areas1.append(porc)
-        
-    for e in range(len(predu_falha)):
-        if predu_falha[e]==1:
-            if pred2[e-cont]==1:
-                preds_c.append('010')
-                aux1.insert(e, pred2[e-cont])
-                if np.mean(imorg[e])<=25:
-                    imgs_ot.insert(e, np.uint8(imorg[e]))
-                    areas1.insert(e,np.float64(100))
-                else:
-                    imgs_ot.insert(e, np.uint8(255*aux2[e-cont-ct]))
-                    areas1.insert(e,areas0[e-cont-ct])
-                cf+=1
-            else:
-                preds_c.append('100')
-                aux1.insert(e, pred2[e-cont])
-                imgs_ot.insert(e, np.uint8(255*aux5[e-cont-cf]))
-                areas1.insert(e,areas1[e-cont-cf])
-                ct+=1
-        else:
-            preds_c.append('000')
-            aux1.insert(e,predu_falha[e])
-            imgs_ot.insert(e,im2[e])
-            areas1.insert(e,round(np.float64(0),2))
-            cont+=1   
-    
-    return preds_c, imgs_ot, areas1
 
-def encode_response(dic_info, preds, af_ar, o_imgs):
+        for e in range(len(H)):
+            hd=np.expand_dims(H[e], 0)
+            _,attention, _ = attention_rollout_map(sfl[e,:,:,0],hd)
+            SF_img = np.where(attention > 2*np.mean(attention),1,0)
+            AREA = np.sum(SF_img)/(SF_img.shape[1] * SF_img.shape[0])*100
+            AREA=round(AREA,2)
+            img_ar_sf.append(SF_img)
+            area_sf.append(AREA)
     
-    data_dic={}
-    labels=list(dic_info.keys())
-    values=list(dic_info.values())
-    for e in range(len(preds)):
-        if preds[e]!="000":
-            aux0=labels[e]
-            aux1=labels[e]+'_label_0'
-            aux2=labels[e]+'_tamanho_0'
-            data_dic[aux0]=base64.b64encode(o_imgs[e]).decode('utf-8')
-            data_dic[aux1]=preds[e]
-            data_dic[aux2]=af_ar[e]
+    img_ar_tr=[]
+    area_tr=[]
+    if len(ltr)>0:
+        for e in ltr:
+            result, porc=function_trinca(or_data[e])
+            img_ar_tr.append(result)
+            area_tr.append(porc)
+    
+    
+    img_ar_ot=[]
+    area_ot=[]
+    if len(lot)>0:
+        for e in lot:
+            result, porc=function_outros(or_data[e])
+            img_ar_ot.append(result)
+            area_ot.append(porc)
+    
+    for e in range (len(labels)):
+        conc=[]
+        if labels[e] in lsf:
+            pos=lsf.index(labels[e])
+            conc.append('010')
+            if np.mean(or_data[labels[e]])<=25:
+                conc.append(np.uint8(or_data[labels[e]]))
+                conc.append(round(np.float64(100),2))
+            else:
+                conc.append(np.uint8(255*img_ar_sf[pos]))
+                conc.append(area_sf[pos])
+            
+            conc.append(predu_falha_p[e])
+            dic_out[labels[e]]=conc
+        elif labels[e] in ltr:
+            pos=ltr.index(labels[e])
+            conc.append('100')
+            conc.append(np.uint8(255*img_ar_tr[pos]))
+            conc.append(area_tr[pos])
+            conc.append(predu_falha_p[e])
+            dic_out[labels[e]]=conc
+        
+        elif labels[e] in lot:
+            pos=lot.index(labels[e])
+            conc.append('001')
+            conc.append(np.uint8(255*img_ar_ot[pos]))
+            conc.append(area_ot[pos])
+            conc.append(predu_falha_p[e])
+            dic_out[labels[e]]=conc
         else:
-            aux0=labels[e]
-            aux1=labels[e]+'_label_0'
-            aux2=labels[e]+'_tamanho_0'
-            data_dic[aux0]=values[e]
-            data_dic[aux1]=preds[e]
-            data_dic[aux2]=af_ar[e]
+            conc.append('000')
+            conc.append(np.uint8(or_data[labels[e]]))
+            conc.append(round(np.float64(0),2))
+            conc.append(predu_falha_p[e])
+            dic_out[labels[e]]=conc
+        
+    return dic_out
+
+def encode_response(dic_info):
+    data_dic={}
+    for e in dic_info.keys():
+        data_dic[e]=base64.b64encode(dic_info[e][1]).decode('utf-8')
+        data_dic[e+'_label_0']=dic_info[e][0]
+        data_dic[e+'_tamanho_0']=dic_info[e][2]
     return data_dic
         
 
@@ -534,15 +569,15 @@ def input_output(encoded_data):
     #######################################################
     
     ############## Do the predictions #####################
-    preds, out_imgs, aff_ar, = ml_predict_bs(d_data,res, m1, m2, m3, m4)
+    dic_out = ml_predict_bs(d_data,res, m1, m2, m3, m4)
+    #input type(d_data) Dic
     #input type(res) Dic
-    #output type(preds) -> list
-    #output type(aff_ar) -> list
-    #output type(out_imgs) -> list
+    #input type(m1,m2,m3,m4) models
+    #output type(dic_out) -> Dic
     #######################################################
     
     ########### Enconde the results #######################
-    enc_res=encode_response(encoded_data, preds, aff_ar, out_imgs)
+    enc_res=encode_response(dic_out)
     #input type(encoded_data) Dic
     #input type(preds) list
     #input type(aff_ar) list
@@ -564,13 +599,4 @@ if __name__ == '__main__': #### <-This line must be deleted, is here just to sep
     ### The changes in ml_predict are done. All the model.predict lines are executed using a batch size and the command   ###
     ### 'with tf.device('gpu'):'. All the function returns are dictionaries, with execept of the ml_predict that also     ###
     ### returns other lists containing the attention maps, the affected area and the predictions.                         ###
-    ### The return in the function encode_response were also added                                                        ### 
-    
-    
-    
-        
-    
-    
-    
-    
-    
+    ### The return in the function encode_response were also added                                                        ###
