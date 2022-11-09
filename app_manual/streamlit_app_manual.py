@@ -54,8 +54,8 @@ else:
 
     ## Results Dataframes
     pred = pd.concat((pred_detection, pred_segmentation, pred_vit)).sort_values(by="Celula", ascending=True)
-    pred_sem_vit = pd.concat((pred_detection, pred_segmentation)).sort_values(by="Celula", ascending=True)
-    
+    #pred_sem_vit = pd.concat((pred_detection, pred_segmentation)).sort_values(by="Celula", ascending=True)
+    pred_sem_vit = pred[pred['Modelo'] != 'Vision Transformer']
     pred = pred.reset_index(drop=True)
     pred_sem_vit = pred_sem_vit.reset_index(drop=True)
 

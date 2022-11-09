@@ -51,11 +51,23 @@ def getCells(img):
     Nx = 24
     Ny = 6
 
-    x0 = np.where(np.abs(np.diff(img[int(0.25*len_y):int(0.75*len_y),:].mean(axis=0)))>1)[0][0]
-    x1 = np.where(np.abs(np.diff(img[int(0.25*len_y):int(0.75*len_y),:].mean(axis=0)))>1)[0][-1]
+    #x0 = np.where(np.abs(np.diff(img[int(0.25*len_y):int(0.75*len_y),:].mean(axis=0)))>1)[0][0]
+    #x1 = np.where(np.abs(np.diff(img[int(0.25*len_y):int(0.75*len_y),:].mean(axis=0)))>1)[0][-1]
 
-    y0 = np.where(np.abs(np.diff(img[:,int(0.7*len_x):int(0.85*len_x)].mean(axis=1)))>10)[0][0]
-    y1 = np.where(np.abs(np.diff(img[:,int(0.7*len_x):int(0.85*len_x)].mean(axis=1)))>10)[0][-1]
+    #y0 = np.where(np.abs(np.diff(img[:,int(0.7*len_x):int(0.85*len_x)].mean(axis=1)))>10)[0][0]
+    #y1 = np.where(np.abs(np.diff(img[:,int(0.7*len_x):int(0.85*len_x)].mean(axis=1)))>10)[0][-1]
+
+    mean_x = img[:,int(0.7*len_x):int(0.85*len_x)].mean(axis=1)
+    mean_y = img[int(0.25*len_y):int(0.75*len_y),:].mean(axis=0)
+
+    diff_x = np.diff(mean_x)
+    diff_y = np.diff(mean_y)
+
+    x0 = np.argmax(diff_y[0:100])
+    x1 = np.argmin(diff_y[len(diff_y)-150:]) + len(diff_y) - 150
+
+    y0 = np.argmax(diff_x[0:100])
+    y1 = np.argmin(diff_x[len(diff_x)-100:]) + len(diff_x) - 100
 
     wy = (y1-y0)//Ny
     wx = (x1-x0)//Nx
@@ -72,16 +84,17 @@ def getCells(img):
             for j in range(X.shape[0]):
                 dx = wx
                 dy = wy
-                e = 10
-                rec1 = recortar(img, X[j, i], Y[j, i], dx, dy, e)
-                rec2 = recortarRefinadoJanela(rec1, e)
+                e = 20
+                rec0 = recortar(img, X[j, i], Y[j, i], dx, dy, 0)
+                if rec0.mean() > 10:
+                    rec1 = recortar(img, X[j, i], Y[j, i], dx, dy, e)
+                    rec2 = recortarRefinadoJanela(rec1, e)
+                else:
+                    rec2 = rec0*0
                 coordY = np.flip(['24','23','22','21','20','19','18','17','16','15','14','13','12', '11', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'])[i]
                 coordX = ['A','B','C','D','E','F'][j]
                 rec2 = np.expand_dims(rec2, 2)
                 rec2 = np.tile(rec2, (1,1,3))
-                rec1 = np.expand_dims(rec1, 2)
-                rec1 = np.tile(rec1, (1,1,3))    
-                out_1[coordY + coordX] = rec1
                 out[coordY + coordX] = rec2
         return out, [x0,y0,x1,y1]
     else:
