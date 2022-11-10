@@ -603,9 +603,9 @@ def log_results(path: str,
 
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     painel = filename
-    if (num_celulas_ng>0):
-        with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str},{t_detection},{t_segmentation},{t_vit}\n')
+    #if (num_celulas_ng>0):
+    with open(f'{path}panels_{date}.csv', 'a') as f:
+        f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str},{t_detection},{t_segmentation},{t_vit}\n')
 
     ### cells CSV
     if num_celulas_ng > 0:
