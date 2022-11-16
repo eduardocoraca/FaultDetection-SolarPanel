@@ -1,2 +1,0 @@
-filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot,t_detection,t_segmentation,t_vit
-BR220831S10H10YJ0006.jpg,BR220831S10H10YJ0006.jpg,1,12,2022-11-09 16:29:43,1.04,0.3,12C-15A-18A-22A-24A-3C-4C-7C,12E-13A-15C-15E-22A-7C,,21.137814044952393,55.72597551345825,12.161336421966553

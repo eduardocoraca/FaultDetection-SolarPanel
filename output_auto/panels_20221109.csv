@@ -1,2 +1,0 @@
-filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot,t_detection,t_segmentation,t_vit
-BR220728S06H09YA0199 (copy).jpg,images_folder/BR220728S06H09YA0199 (copy).jpg,1,2,2022-11-09 16:35:36,1.04,0.3,,22B-4E,,19.242705583572388,49.50856280326843,13.100369215011597
