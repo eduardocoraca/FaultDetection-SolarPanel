@@ -74,12 +74,13 @@ def numpy_to_binary(arr):
 # models
 @st.experimental_memo(show_spinner=False, max_entries=1)
 def request_cell_split(img: np.array, threshold: float) -> Tuple[dict,np.array,dict,dict]:
-    ''' Sends panel image to 'segment_cell' model
+    ''' Sends panel image to 'segment_cell' model.
     Args:
         img: (img_x, img_y) np.array with dtype=np.uint8 
         threshold: limit value of the mean cell intensity
     Returns:
         dict: dict of cells, with keys relrated to each cell position. Eg. 1A,...,24F
+        preds: predictions for dark cells
     '''
     start = time.time()
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -358,8 +359,29 @@ def request_pred_vit(cells: dict, threshold: float) -> Tuple[pd.DataFrame, dict,
 
     img_json = json.dumps(cells_dict)
     ip = "vit_model"
-    response = requests.post("http://" + ip + ":7000/predict/", json=img_json)
-    json_resp = json.loads(response.text)
+    try:
+        response = requests.post("http://" + ip + ":7000/predict/", json=img_json)
+        json_resp = json.loads(response.text)
+    except:
+        df_meta = pd.DataFrame()
+        df_meta['model'] = ['Vision Transformer']
+        df_meta['t_request'] = [0.0]
+        df_meta['t_preprocessing'] = [0.0]
+        df_meta['t_processing'] = [0.0]
+        df_meta['t_postprocessing'] = [0.0]
+        df_meta['processed_cells'] = [0.0]
+        df_meta['t_total'] = [0.0]        
+
+        res = {
+            'Celula': [],
+            'Modelo': [],
+            'Status': [],
+            'Tamanho': [],
+            'Unidade': [],
+                }
+        df = pd.DataFrame(res)
+        cells_fault = {}
+        return df, cells_fault, df_meta 
 
     chaves = list(json_resp.keys())
     outros = list(filter(lambda x: x if len(x.split("_")) > 1 else None, chaves))
@@ -472,11 +494,11 @@ def log_results(path: str,
     ## creating daily reports (if not previously created)
     if not os.path.isfile(f'{path}panels_{date}.csv'):
         with open(f'{path}panels_{date}.csv', 'a') as f:
-            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot,t_detection,t_segmentation,t_vit\n')
+            f.write(f'filename,path,status,num_cells_ng,date,crit_sf,crit_tr,local_tr,local_sf,local_ot,local_ce,t_detection,t_segmentation,t_vit\n')
 
     if not os.path.isfile(f'{path}cells_{date}.csv'):
         with open(f'{path}cells_{date}.csv', 'a') as f:
-            f.write(f'local,filename,path,trinca,solda_fria,outros\n')            
+            f.write(f'local,filename,path,trinca,solda_fria,outros,celula_escura\n')            
 
     if not os.path.isfile(f'{path}cells_detection_{date}.csv'):
         with open(f'{path}cells_detection_{date}.csv', 'a') as f:
@@ -501,6 +523,7 @@ def log_results(path: str,
     tr_str = ''
     sf_str = ''
     ot_str = ''
+    ce_str = ''
     for idx, row in predictions.iterrows():
         cell = row['Celula']
         if 'Trinca' in row['Status'].split(','):
@@ -509,18 +532,21 @@ def log_results(path: str,
             sf_str += f'-{cell}'
         if 'Outros' in row['Status'].split(','):
             ot_str += f'-{cell}'
+        if 'Célula escura' in row['Status'].split(','):
+            ce_str += f'-{cell}'
     if len(tr_str)>0:
         tr_str = tr_str[1:] # removing first '-'
     if len(sf_str)>0:
         sf_str = sf_str[1:] # removing first '-'
     if len(ot_str)>0:
         ot_str = ot_str[1:] # removing first '-'
+    if len(ce_str)>0:
+        ce_str = ce_str[1:] # removing first '-'
 
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     painel = filename
-    #if (num_celulas_ng>0):
     with open(f'{path}panels_{date}.csv', 'a') as f:
-        f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str},{t_detection},{t_segmentation},{t_vit}\n')
+        f.write(f'{painel},{image_path},{status},{num_celulas_ng},{data_hora},{crit_sf},{crit_tr},{tr_str},{sf_str},{ot_str},{ce_str},{t_detection},{t_segmentation},{t_vit}\n')
     
     ### cells CSV
     if num_celulas_ng > 0:
@@ -531,15 +557,18 @@ def log_results(path: str,
             trinca = 0
             solda_fria = 0
             outros = 0
+            celula_escura = 1
             if "Trinca" in status_k:
                 trinca = 1
             if "Solda fria" in status_k:
                 solda_fria = 1
             if "Outros" in status_k:
                 outros = 1
-            
+            if "Célula escura" in status_k:
+                celula_escura = 1
+
             with open(f'{path}cells_{date}.csv', 'a') as f:
-                f.write(f'{local},{painel},{image_path},{trinca},{solda_fria},{outros}\n')            
+                f.write(f'{local},{painel},{image_path},{trinca},{solda_fria},{outros},{celula_escura}\n')            
 
     ### cells_detection CSV
     for idx, row in pred_detection.iterrows():
