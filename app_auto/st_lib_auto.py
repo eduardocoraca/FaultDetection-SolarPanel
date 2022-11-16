@@ -233,28 +233,9 @@ def request_pred_detection(cells: dict, threshold: float) -> Tuple[pd.DataFrame,
     cells_dict = {}
     for k in cells.keys():
         img = cells[k] # each image is a 150x300 matrix
-        if img.mean() < threshold:
-            # execution is stopped if cell is dark, returns empty outputs and 0 exec. time
-            df_meta = pd.DataFrame()
-            df_meta['model'] = ['Detecção']
-            df_meta['t_request'] = [0.0]
-            df_meta['t_preprocessing'] = [0.0]
-            df_meta['t_processing'] = [0.0]
-            df_meta['t_postprocessing'] = [0.0]
-            df_meta['processed_cells'] = [0.0]
-            df_meta['t_total'] = [0.0]
-            pred = pd.DataFrame(
-                {
-                    'Celula': [],
-                    'Modelo': [],
-                    'Status': [],
-                    'Tamanho': [],
-                    'Unidade': [],
-                }
-                )
-            return pred, {}, df_meta
-        img = base64.b64encode(img).decode('utf-8')
-        cells_dict[k] = img
+        if img.mean() > threshold:
+            img = base64.b64encode(img).decode('utf-8')
+            cells_dict[k] = img
 
     img_json = json.dumps(cells_dict)
     ip = "detection_model"
@@ -326,28 +307,9 @@ def request_pred_segmentation(cells: dict, threshold: float) -> Tuple[pd.DataFra
     cells_dict = {}
     for k in cells.keys():
         img = cells[k] # each image is a 150x300 matrix
-        if img.mean() < threshold:
-            # execution is stopped if cell is dark, returns empty outputs and 0 exec. time
-            df_meta = pd.DataFrame()
-            df_meta['model'] = ['Segmentação']
-            df_meta['t_request'] = [0.0]
-            df_meta['t_preprocessing'] = [0.0]
-            df_meta['t_processing'] = [0.0]
-            df_meta['t_postprocessing'] = [0.0]
-            df_meta['processed_cells'] = [0.0]
-            df_meta['t_total'] = [0.0]
-            pred = pd.DataFrame(
-                {
-                    'Celula': [],
-                    'Modelo': [],
-                    'Status': [],
-                    'Tamanho': [],
-                    'Unidade': [],
-                }
-                )
-            return pred, {}, df_meta
-        img = base64.b64encode(img).decode('utf-8')
-        cells_dict[k] = img
+        if img.mean() > threshold:
+            img = base64.b64encode(img).decode('utf-8')
+            cells_dict[k] = img
 
     img_json = json.dumps(cells_dict)
     ip = "segmentation_model"
@@ -420,29 +382,10 @@ def request_pred_vit(cells: dict, threshold: float) -> Tuple[pd.DataFrame, dict,
     cells_dict = {}
     for k in cells.keys():
         img = cells[k] # each image is a 150x300 matrix
-        if img.mean() < threshold:
-            # execution is stopped if cell is dark, returns empty outputs and 0 exec. time
-            df_meta = pd.DataFrame()
-            df_meta['model'] = ['Vision Transformer']
-            df_meta['t_request'] = [0.0]
-            df_meta['t_preprocessing'] = [0.0]
-            df_meta['t_processing'] = [0.0]
-            df_meta['t_postprocessing'] = [0.0]
-            df_meta['processed_cells'] = [0.0]
-            df_meta['t_total'] = [0.0]
-            pred = pd.DataFrame(
-                {
-                    'Celula': [],
-                    'Modelo': [],
-                    'Status': [],
-                    'Tamanho': [],
-                    'Unidade': [],
-                }
-                )
-            return pred, {}, df_meta
-        img = cv2.resize(img, (150,280), cv2.INTER_AREA) # converting to 150x280 for ViT
-        img = base64.b64encode(img).decode('utf-8')
-        cells_dict[k] = img
+        if img.mean() > threshold:
+            img = cv2.resize(img, (150,280), cv2.INTER_AREA) # converting to 150x280 for ViT
+            img = base64.b64encode(img).decode('utf-8')
+            cells_dict[k] = img
 
     img_json = json.dumps(cells_dict)
     ip = "vit_model"

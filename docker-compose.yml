@@ -33,20 +33,6 @@ services:
     ports:
       - "8503:8503"
 
-  # streamlit_app:
-  #   restart: always
-  #   build: ./streamlit/.
-  #   container_name: streamlit_app
-  #   image: streamlit_app
-  #   volumes:
-  #     - ./data:/app/data
-  #     - ./output_auto:/app/output_folder
-  #     - ./images_folder:/app/images_folder
-  #   networks:
-  #     - rede_byd
-  #   ports:
-  #     - "8501:8501"
-
   streamlit_config:
     restart: always
     build: ./config/.
