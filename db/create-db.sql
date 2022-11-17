@@ -25,6 +25,7 @@ CREATE TABLE celulas (
     trinca INT,
     solda_fria INT,
     outros INT,
+    celula_escura INT,
     CONSTRAINT FK_id_painel FOREIGN KEY (id_painel) REFERENCES paineis(id_painel)
 );
 

@@ -662,22 +662,25 @@ def save_to_db(img_panel: np.array,
             painel = filename
             id_painel = last_id
             status_k = np.unique(predictions.loc[predictions["Celula"]==k, "Status"].item().split(',')) # falhas presentes na celula
-            
+
             trinca = 0
             solda_fria = 0
             outros = 0
+            celula_escura = 0
             if "Trinca" in status_k:
                 trinca = 1
             if "Solda fria" in status_k:
                 solda_fria = 1
             if "Outros" in status_k:
                 outros = 1
-            valores_a_inserir.append((id_painel, local, painel, trinca, solda_fria, outros))
+            if "Célula escura" in status_k:
+                celula_escura = 1
+            valores_a_inserir.append((id_painel, local, painel, trinca, solda_fria, outros, celula_escura))
 
     if len(valores_a_inserir) > 0:
         connection = mysql.connector.connect(**mysql_config)
         cursor = connection.cursor()        
-        cursor.executemany('INSERT INTO celulas (id_painel, local, painel, trinca, solda_fria, outros) VALUES (%s, %s, %s, %s, %s, %s)', valores_a_inserir)    
+        cursor.executemany('INSERT INTO celulas (id_painel, local, painel, trinca, solda_fria, outros, celula_escura) VALUES (%s, %s, %s, %s, %s, %s, %s)', valores_a_inserir)    
         connection.commit()
         cursor.close()
         connection.close()
