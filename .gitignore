@@ -12,6 +12,9 @@ __pycache__/
 # Images
 *.jpg
 
+# dB instructions
+db.txt
+
 # Distribution / packaging
 .Python
 build/
