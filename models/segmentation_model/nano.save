@@ -1,5 +1,0 @@
-File "streamlit_app.py", line 89
-      for c in list(np.unique(pred['Celula']):
-                                             ^
-SyntaxError: invalid syntax
-

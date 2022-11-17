@@ -1,8 +1,8 @@
 numpy==1.21.5
 flask==2.0.3
-tensorflow==2.10.0
+tensorflow==2.8.3
 waitress==2.1.1
-protobuf==3.9.2
+protobuf==3.19.6
 scikit-image==0.19.2
 opencv-contrib-python==4.6.0.66
 tensorflow_addons==0.18.0
