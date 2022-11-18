@@ -482,6 +482,28 @@ def get_image_auto(image_path:str) -> Tuple[np.array, str]:
     image = cv2.imread(image_path)
     return image, filename
 
+# fault criteria
+@st.experimental_memo(show_spinner=False, max_entries=1)
+def check_sf(predictions:pd.DataFrame, cell:str, crit_sf:float):
+    '''Checks if the selected has an SF fault.
+    Args:
+        predictions: dataframe w/ columns ['Modelo','Celula','Status','Tamanho']
+        cell: cell to be analyzed
+        crit_sf: criteria for SF fault
+    Returns:
+        fault: True if SF fault is present
+    '''
+    f_sf = predictions.loc[((predictions['Celula']==cell) & (predictions['Status']=='Solda fria'))]
+    f_sf_deteccao = f_sf.loc[f_sf['Modelo']=='Detecção']
+    t_det = np.sum(f_sf_deteccao['Tamanho'])
+
+    f_sf_segmentacao = f_sf.loc[f_sf['Modelo']=='Segmentação']
+    t_seg = np.sum(f_sf_segmentacao['Tamanho'])    
+    if (t_det > crit_sf) & (t_seg > crit_sf):
+        return True
+    else:
+        return False
+
 # logging
 @st.experimental_memo(show_spinner=False, max_entries=1)
 def log_results(path: str,

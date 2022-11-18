@@ -105,7 +105,7 @@ else:
         outros = ''
         if size_tr_total > criterio_tr:
             falhas += 'Trinca,'
-        if size_sf_total > criterio_sf:
+        if check_sf(predictions=pred_sem_vit, cell=c, crit_sf=criterio_sf):
             falhas += 'Solda fria,'
         if size_ot_total > criterio_ot:
             outros += 'Outros,'

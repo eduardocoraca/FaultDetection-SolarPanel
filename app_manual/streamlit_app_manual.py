@@ -95,14 +95,13 @@ else:
         f_dc = pred_sem_vit.loc[((pred_sem_vit['Celula']==c) & (pred_sem_vit['Status']=='Célula escura'))]
 
         size_tr_total = np.max([np.sum(f_tr.loc[f_tr['Modelo']==model, 'Tamanho']) for model in np.unique(f_tr['Modelo'])] + [0] )
-        size_sf_total = np.max([np.sum(f_sf.loc[f_sf['Modelo']==model, 'Tamanho']) for model in np.unique(f_sf['Modelo'])] + [0] )
         size_ot_total = np.max([np.sum(f_ot.loc[f_ot['Modelo']==model, 'Tamanho']) for model in np.unique(f_ot['Modelo'])] + [0] )
 
         falhas = ''
         outros = ''
         if size_tr_total > criterio_tr:
             falhas += 'Trinca,'
-        if size_sf_total > criterio_sf:
+        if check_sf(predictions=pred_sem_vit, cell=c, crit_sf=criterio_sf):
             falhas += 'Solda fria,'
         if size_ot_total > criterio_ot:
             outros += 'Outros,'
