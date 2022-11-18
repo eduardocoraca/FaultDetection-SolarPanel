@@ -74,11 +74,6 @@ else:
     meta = pd.concat(metas_list)
     meta = meta.reset_index(drop=True)
 
-    if len(pred.index)>0:
-        resultado = "Painel NG"
-    else:
-        resultado = "Painel OK"
-
     # cell report dataframe
     results_dict = {
         'Celula': [],
@@ -99,18 +94,27 @@ else:
 
         falhas = ''
         outros = ''
+        falha_c = False
         if size_tr_total > criterio_tr:
             falhas += 'Trinca,'
+            falha_c = True
         if check_sf(predictions=pred_sem_vit, cell=c, crit_sf=criterio_sf):
             falhas += 'Solda fria,'
+            falha_c = True
         if size_ot_total > criterio_ot:
             outros += 'Outros,'
-        if len(f_dc)>0:
-            falhas += 'Célula escura'
-        if len(falhas) > 0:
+        if len(f_dc) > 0:
+            falhas += 'Célula escura,'
+            falha_c = True
+        if falha_c:
             num_ng_cells += 1
             results_dict['Celula'].append(c)
             results_dict['Status'].append(falhas + outros)
+
+    if num_ng_cells>0:
+        resultado = "Painel NG"
+    else:
+        resultado = "Painel OK"
 
     results_df = pd.DataFrame()
     results_df['Celula'] = results_dict['Celula']
