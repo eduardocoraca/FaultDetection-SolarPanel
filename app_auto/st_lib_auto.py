@@ -693,18 +693,18 @@ def save_to_db(img_panel: np.array,
     else:
         status = 0
     
-    if (num_celulas_ng>0) | (comments != ""):
-        data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        painel = filename
-        connection = mysql.connector.connect(**mysql_config)
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO paineis (painel, status, img, num_celulas_ng, data_hora, comentarios, crit_sf, crit_tr) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                    (painel, status, img_binary, num_celulas_ng, data_hora, comments, crit_sf, crit_tr))
-        
-        connection.commit()
-        last_id = cursor.lastrowid # valor unico inserido para este painel
-        cursor.close()
-        connection.close()
+    #if (num_celulas_ng>0) | (comments != ""):
+    data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    painel = filename
+    connection = mysql.connector.connect(**mysql_config)
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO paineis (painel, status, img, num_celulas_ng, data_hora, comentarios, crit_sf, crit_tr) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                (painel, status, img_binary, num_celulas_ng, data_hora, comments, crit_sf, crit_tr))
+    
+    connection.commit()
+    last_id = cursor.lastrowid # valor unico inserido para este painel
+    cursor.close()
+    connection.close()
 
     ### tabela celulas
     valores_a_inserir = [] # lista onde serao armazendos os valores (tuplas) a serem inseridos
