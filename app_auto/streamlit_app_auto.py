@@ -114,7 +114,7 @@ else:
             results_dict['Celula'].append(c)
             results_dict['Status'].append(falhas + outros)
 
-    if len(pred.index)>0:
+    if num_ng_cells>0:
         resultado = "Painel NG"
     else:
         resultado = "Painel OK"

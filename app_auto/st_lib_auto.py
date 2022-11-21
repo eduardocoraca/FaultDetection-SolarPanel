@@ -696,6 +696,8 @@ def save_to_db(img_panel: np.array,
     #if (num_celulas_ng>0) | (comments != ""):
     data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     painel = filename
+    if num_celulas_ng == 0:
+        img_binary = ""
     connection = mysql.connector.connect(**mysql_config)
     cursor = connection.cursor()
     cursor.execute("INSERT INTO paineis (painel, status, img, num_celulas_ng, data_hora, comentarios, crit_sf, crit_tr) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
