@@ -61,6 +61,9 @@ services:
     privileged: true
     container_name: detection_model
     image: detection_model
+    volumes:
+      - ./data:/workspace/projeto/data
+      - ./models/detection_model/models:/workspace/projeto/models
     networks:
       - rede_byd
     ports:
@@ -79,6 +82,9 @@ services:
     privileged: true
     container_name: segmentation_model
     image: segmentation_model
+    volumes:
+      - ./data:/projeto/data
+      - ./models/segmentation_model/models:/projeto/models
     networks:
       - rede_byd
     ports:
@@ -97,6 +103,9 @@ services:
     privileged: true
     container_name: vit_model
     image: vit_model
+    volumes:
+      - ./data:/projeto/data
+      - ./models/vit_model/models:/projeto/models
     networks:
       - rede_byd
     ports:

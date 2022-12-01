@@ -4,8 +4,8 @@ RUN mkdir projeto
 
 COPY requirements.txt ./requirements.txt
 
-COPY NP_Teste_modelo_Ucnn_map_102_model_005.h5 ./projeto/ucnn.h5
-COPY PN_Teste_modelo_Unet_map_102_classe_001_model_003.h5 ./projeto/unet.h5
+#COPY NP_Teste_modelo_Ucnn_map_102_model_005.h5 ./projeto/ucnn.h5
+#COPY PN_Teste_modelo_Unet_map_102_classe_001_model_003.h5 ./projeto/unet.h5
 
 COPY app.py ./projeto/app.py
 

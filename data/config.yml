@@ -2,3 +2,17 @@ criterios:
   outros: 0
   solda_fria: 10.0
   trinca: 10.0
+
+models:
+  detection_model:
+    batch_size: 5
+    use_cuda: False
+    memory_limit: None
+  segmentation_model:
+    batch_size: 5
+    use_cuda: False
+    memory_limit: 200
+  vit_model:
+    batch_size: 5
+    use_cuda: False
+    memory_limit: 200

@@ -4,8 +4,8 @@ RUN mkdir projeto
 
 COPY requirements.txt ./requirements.txt
 
-COPY ViT_models ./projeto/ViT_models
-COPY Flaw_detection_FEEC.py ./projeto/Flaw_detection_FEEC.py
+#COPY ViT_models ./projeto/ViT_models
+#COPY Flaw_detection_FEEC.py ./projeto/Flaw_detection_FEEC.py
 COPY app.py ./projeto/app.py
 
 RUN apt-get update

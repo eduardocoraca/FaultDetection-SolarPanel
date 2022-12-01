@@ -6,3 +6,4 @@ protobuf==3.19.6
 scikit-image==0.19.2
 opencv-contrib-python==4.6.0.66
 tensorflow_addons==0.18.0
+pyyaml==6.0

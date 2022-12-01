@@ -7,21 +7,10 @@ from keras.models import load_model
 import numpy as np
 import base64
 import time
-
-# def criterio(pred:list, img_mp:np.array) -> list:
-#     area = [0,0,0] # area comprometida em cada anomalia [trinca, solda, outros]
-  
-#     if np.sum(pred) > 0:  # if true é porque tem anomalia 
-#         if pred[0] > 0: # a celula tem trinca
-#             area[0] = np.sum(np.abs(img_mp[:,:,0]))/(300*150)*100 # sai em porcentagem.
-#         if pred[1] > 0: # a celula tem solda
-#             area[1] = np.sum(np.abs(img_mp[:,:,1]))/(300*150)*100 # sai em porcentagem.  
-#         if pred[2] > 0: # a celula tem outos
-#             area[2] = np.sum(np.abs(img_mp[:,:,2]))/(300*150)*100 # sai em porcentagem.
-#     return area
+import yaml
 
 def criterio(pred,img_mp) -> list:
-    area=[0,0,0] # area comprometida em cada anomalia [trinc, solda , outros]  
+    area=[0,0,0] # area comprometida em cada anomalia [trinca, solda , outros]  
     if np.sum(pred)>0:  # if true é porque tem anomalia 
         if pred[0]>0: # a celula tem trinca
             area[0]=np.sum(np.abs(img_mp[:,:,1]))/(300*150)*100 # sai em porcentagem.
@@ -31,16 +20,9 @@ def criterio(pred,img_mp) -> list:
             area[2]=np.sum(np.abs(img_mp[:,:,1]))/(300*150)*100+np.sum(np.abs(img_mp[:,:,2]))/(300*150)*100 # sai em porcentagem.
     return area
 
+path_1 = "projeto/models/ucnn.h5"
+path_2 = "projeto/models/unet.h5"
 
-path_1 = "projeto/ucnn.h5"
-path_2 = "projeto/unet.h5"
-
-# limitando o uso de RAM da GPU
-gpus = tf.config.list_physical_devices("GPU")
-print(gpus)
-if gpus:
-    for gpu in gpus:
-        tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5000)])
 
 m1 = load_model(path_1)
 m2 = load_model(path_2)
@@ -54,8 +36,24 @@ def index():
 @app.route('/predict/', methods=['GET','POST'])
 def predict():
     if request.method == 'POST':
-        
         start = time.time()
+
+        # loading config data
+        with open('projeto/data/config.yml') as file:
+            config = yaml.safe_load(file)
+
+        batch_size = config["models"]["segmentation_model"]["batch_size"]
+        use_cuda = config["models"]["segmentation_model"]["use_cuda"]
+        memory_limit = config["models"]["segmentation_model"]["memory_limit"]
+
+        # limitando o uso de RAM da GPU
+        if use_cuda:
+            gpus = tf.config.list_physical_devices("GPU")
+            print(gpus)
+            if gpus:
+                for gpu in gpus:
+                    tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])
+
         img_json = request.get_json()
         img_json = json.loads(img_json)
         stop = time.time()
@@ -78,9 +76,12 @@ def predict():
         start = time.time()
         output_data_1 = []
         output_data_2 = []
-        with tf.device("gpu"):
-            batch_size = 5
-            for k in range(0,x.shape[0],batch_size):
+        if use_cuda:
+            dev = "gpu"
+        else:
+            dev = "cpu"
+        with tf.device(dev):
+            for k in range(0,x.shape[0], batch_size):
                 try:
                     xi = x[k:k+batch_size] # (batch_size,300,150,1)
                 except:

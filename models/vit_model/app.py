@@ -7,18 +7,13 @@ import tensorflow_addons as tfa
 import time
 from flask import Flask, request
 import json
+import yaml
 
-from Flaw_detection_FEEC import *
+from models.Flaw_detection_FEEC import *
 
-# limitando o uso de RAM da GPU
-gpus = tf.config.list_physical_devices("GPU")
-print(gpus)
-if gpus:
-    for gpu in gpus:
-        tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5000)])
-
-models_path = 'projeto/ViT_models/'
-m1,m2,m3,m4 = loading_models(models_path)
+models_path = 'projeto/models/'
+#m1,m2,m3,m4 = loading_models(models_path)
+m1,m2,m3 = loading_models(models_path)
 
 app = Flask(__name__)
 
@@ -30,6 +25,24 @@ def index():
 def predict():
     if request.method == 'POST':
         start = time.time()
+        
+        # loading config data
+        with open('projeto/data/config.yml') as file:
+            config = yaml.safe_load(file)
+
+        batch_size = config["models"]["vit_model"]["batch_size"]
+        use_cuda = config["models"]["vit_model"]["use_cuda"]
+        memory_limit = config["models"]["vit_model"]["memory_limit"]
+
+        # limitando o uso de RAM da GPU
+        if use_cuda:
+            gpus = tf.config.list_physical_devices("GPU")
+            print(gpus)
+            if gpus:
+                for gpu in gpus:
+                    tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])
+
+
         img_json = request.get_json()
         img_json = json.loads(img_json)
         stop = time.time()
@@ -54,7 +67,9 @@ def predict():
         ############## Do the predictions ####################
         start = time.time()
         # preds, out_imgs, aff_ar = ml_predict_bs(d_data, res, m1, m2, m3, m4)
-        dic_out = ml_predict_bs(d_data,res, m1, m2, m3, m4)
+        #dic_out = ml_predict_bs(d_data,res, m1, m2, m3, m4)
+        dic_out = ml_predict_bs(d_data,res, m1, m2, m3, batch_size, use_cuda)
+
         stop = time.time()
         time_processing = stop - start
         ######################################################

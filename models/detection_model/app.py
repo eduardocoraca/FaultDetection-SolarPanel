@@ -7,8 +7,9 @@ import torchvision
 import cv2
 import base64
 import time
+import yaml
 
-model = torch.load("projeto/modelo_rcnn.ckpt", map_location=torch.device("cpu"))
+model = torch.load("./projeto/models/modelo_rcnn.ckpt", map_location=torch.device("cpu"))
 model.eval()
 
 # aplicativo flask
@@ -21,9 +22,21 @@ def index():
 @app.route('/predict/', methods=['GET','POST'])
 def predict():
     if request.method == 'POST':
-        device = torch.device("cuda")
-        model.to(device)
         start = time.time()
+        
+        # loading config data
+        with open('./projeto/data/config.yml') as file:
+            config = yaml.safe_load(file)
+
+        batch_size = config["models"]["detection_model"]["batch_size"]
+        use_cuda = config["models"]["detection_model"]["use_cuda"]
+        
+        if use_cuda:
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        model.to(device)
+        
         img_json = request.get_json()
         img_json = json.loads(img_json)
         stop = time.time()
@@ -46,7 +59,6 @@ def predict():
 
         start = time.time()
         with torch.inference_mode():
-            batch_size = 5
             total_size = x.shape[0]
             pred_model = []
             for k in range(0, total_size, batch_size):
