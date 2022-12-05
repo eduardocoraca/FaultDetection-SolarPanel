@@ -1,7 +1,7 @@
 # Fault Detection on Solar Panels
 Fault detection program based on images from solar panels.
 
-The following Deep Learning models make predictions on input cell images:
+After splitting each cell from the panel, the following Deep Learning models make predictions on input image:
 - Faster-RCNN Object Detection
 - U-Net Semantic Segmentation
 - ViT
