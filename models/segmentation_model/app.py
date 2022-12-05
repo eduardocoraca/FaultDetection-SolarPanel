@@ -23,6 +23,19 @@ def criterio(pred,img_mp) -> list:
 path_1 = "projeto/models/ucnn.h5"
 path_2 = "projeto/models/unet.h5"
 
+with open('projeto/data/config.yml') as file:
+    config = yaml.safe_load(file)
+
+use_cuda = config["models"]["segmentation_model"]["use_cuda"]
+memory_limit = config["models"]["segmentation_model"]["memory_limit"]
+
+# limitando o uso de RAM da GPU
+if use_cuda:
+    gpus = tf.config.list_physical_devices("GPU")
+    print(gpus)
+    if gpus:
+        for gpu in gpus:
+            tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])
 
 m1 = load_model(path_1)
 m2 = load_model(path_2)
@@ -43,16 +56,6 @@ def predict():
             config = yaml.safe_load(file)
 
         batch_size = config["models"]["segmentation_model"]["batch_size"]
-        use_cuda = config["models"]["segmentation_model"]["use_cuda"]
-        memory_limit = config["models"]["segmentation_model"]["memory_limit"]
-
-        # limitando o uso de RAM da GPU
-        if use_cuda:
-            gpus = tf.config.list_physical_devices("GPU")
-            print(gpus)
-            if gpus:
-                for gpu in gpus:
-                    tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=memory_limit)])
 
         img_json = request.get_json()
         img_json = json.loads(img_json)
