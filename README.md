@@ -1,2 +1,2 @@
-# FaultDetection-SolarPanel
-Fault detection program based on photographs from solar panels.
+# Fault Detection on Solar Panels
+Fault detection program based on images from solar panels.
