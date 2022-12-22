@@ -92,8 +92,8 @@ def getCells(img):
                     rec2 = recortarRefinadoJanela(rec1, ex, ey)
                 else:
                     rec2 = rec0
-                coordY = np.flip(['24','23','22','21','20','19','18','17','16','15','14','13','12', '11', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'])[i]
-                coordX = ['A','B','C','D','E','F'][j]
+                coordY = (['24','23','22','21','20','19','18','17','16','15','14','13','12', '11', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1'])[i]
+                coordX = np.flip(['A','B','C','D','E','F'])[j]
                 rec2 = np.expand_dims(rec2, 2)
                 rec2 = np.tile(rec2, (1,1,3))
                 out[coordY + coordX] = rec2

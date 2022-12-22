@@ -180,7 +180,7 @@ def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
     for i in range(25):
         img_text = 255*np.ones((100,150), dtype=np.uint8)
         if i!=0:
-            text = f"{i}"
+            text = f"{25-i}"
         else:
             text = ""
         img_text = cv2.putText(img=img_text, text=text, org=(50,75), 
@@ -192,7 +192,7 @@ def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
     content += "<br>"
 
     for j in range(6):
-        cy = ["A","B","C","D","E","F"][j]
+        cy = ["A","B","C","D","E","F"][5-j]
         img_text = 255*np.ones((100,150), dtype=np.uint8)
         img_text = cv2.putText(img=img_text, text=f"{cy}", org=(75,75), 
                                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0,0,0), thickness=4)
@@ -202,7 +202,7 @@ def get_interactive_cells(cells: dict, df: pd.DataFrame) -> str:
         content += f"""<img width='3.75%' src='data:image/jpeg;base64,{encoded}'></a>"""
         # content += f """<b>{cy}  </b>"""
         for i in range(24):
-            cx = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"][i]
+            cx = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"][23-i]
             img_celula = cells[cx+cy].copy()
             img_celula = cv2.resize(img_celula, (150,300), cv2.INTER_AREA)
 

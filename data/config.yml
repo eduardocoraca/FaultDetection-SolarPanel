@@ -1,18 +1,17 @@
 criterios:
   outros: 0
-  solda_fria: 10.0
-  trinca: 10.0
-
+  solda_fria: 1.19
+  trinca: 1.19
 models:
   detection_model:
     batch_size: 5
-    use_cuda: False
     memory_limit: None
+    use_cuda: false
   segmentation_model:
     batch_size: 5
-    use_cuda: False
     memory_limit: 200
+    use_cuda: false
   vit_model:
     batch_size: 5
-    use_cuda: False
     memory_limit: 200
+    use_cuda: false
